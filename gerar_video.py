@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Gera um vídeo vertical (1080x1920) de curiosidades, sem rosto.
 
-Requisitos: ffmpeg, espeak-ng + mbrola-br3, Pillow, numpy,
-fontes Inter e Noto Color Emoji.
+Requisitos: ffmpeg, piper-tts, Pillow, numpy, fontes Inter e
+Noto Color Emoji. A voz neural (pt-BR) é baixada na primeira execução.
 
 Uso: python3 gerar_video.py  ->  gera video.mp4
 """
@@ -10,18 +10,25 @@ import math
 import os
 import random
 import subprocess
+import tarfile
 import tempfile
+import urllib.request
 import wave
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 W, H, FPS, SR = 1080, 1920, 30, 44100
-VOICE = "mb-br3"
+PASTA = os.path.dirname(os.path.abspath(__file__))
+VOZ_DIR = os.path.join(PASTA, "voz")
+VOZ_MODELO = os.path.join(VOZ_DIR, "pt-br-edresson-low.onnx")
+VOZ_URL = ("https://github.com/rhasspy/piper/releases/download/v0.0.2/"
+           "voice-pt-br-edresson-low.tar.gz")
+VELOCIDADE = 0.85  # < 1 fala mais rápido
 FONT_BLACK = "/usr/share/fonts/opentype/inter/Inter-Black.otf"
 FONT_BOLD = "/usr/share/fonts/opentype/inter/Inter-Bold.otf"
 FONT_EMOJI = "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "video.mp4")
+OUT = os.path.join(PASTA, "video.mp4")
 
 # Cada cena: texto narrado, emoji, título curto na tela, cores do fundo.
 CENAS = [
@@ -58,10 +65,29 @@ PAUSA = 0.35  # silêncio entre cenas (s)
 
 
 # ---------------------------------------------------------------- áudio
+_voz = None
+
+
+def carregar_voz():
+    global _voz
+    if _voz is None:
+        if not os.path.exists(VOZ_MODELO):
+            os.makedirs(VOZ_DIR, exist_ok=True)
+            arq = os.path.join(VOZ_DIR, "voz.tar.gz")
+            urllib.request.urlretrieve(VOZ_URL, arq)
+            with tarfile.open(arq) as t:
+                t.extractall(VOZ_DIR, filter="data")
+            os.remove(arq)
+        from piper import PiperVoice
+        _voz = PiperVoice.load(VOZ_MODELO)
+    return _voz
+
+
 def tts(texto, caminho):
-    subprocess.run(["espeak-ng", "-v", VOICE, "-s", "170", "-p", "45",
-                    "-w", caminho, texto], check=True,
-                   stderr=subprocess.DEVNULL)
+    from piper import SynthesisConfig
+    with wave.open(caminho, "wb") as w:
+        carregar_voz().synthesize_wav(
+            texto, w, syn_config=SynthesisConfig(length_scale=VELOCIDADE))
     with wave.open(caminho) as w:
         sr = w.getframerate()
         dados = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
