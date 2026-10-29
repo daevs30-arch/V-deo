@@ -4,12 +4,15 @@
 Requisitos: ffmpeg, piper-tts, Pillow, numpy, fontes Inter e
 Noto Color Emoji. A voz neural (pt-BR) é baixada na primeira execução.
 
-Uso: python3 gerar_video.py  ->  gera video.mp4
+Uso: python3 gerar_video.py            ->  gera video.mp4 (com narração)
+     python3 gerar_video.py --sem-voz  ->  gera video_sem_voz.mp4 (só música)
+                                           e roteiro_capcut.txt
 """
 import math
 import os
 import random
 import subprocess
+import sys
 import tarfile
 import tempfile
 import urllib.request
@@ -340,16 +343,8 @@ def quadro(cena, idx, tl, dur, tg, total, inicios):
 
 
 # ---------------------------------------------------------------- main
-def main():
-    tmp = tempfile.mkdtemp()
-    vozes = [tts(c["fala"], os.path.join(tmp, f"v{i}.wav"))
-             for i, c in enumerate(CENAS)]
-    duracoes = [len(v) / SR + PAUSA + 0.25 for v in vozes]
-    inicios = np.cumsum([0] + duracoes[:-1])
-    total = sum(duracoes) + 0.6
-
-    # mixagem
-    mix = musica(total) * 0.35
+def mixar(vozes, inicios, total, com_voz=True):
+    mix = musica(total) * (0.35 if com_voz else 0.6)
     voz = np.zeros_like(mix)
     sw = whoosh()
     for i, (v, ini) in enumerate(zip(vozes, inicios)):
@@ -358,16 +353,45 @@ def main():
         if i > 0:
             b = max(0, int(ini * SR) - len(sw) // 2)
             mix[b:b + len(sw)] += sw[: len(mix) - b]
+    if not com_voz:
+        return np.clip(mix, -1, 1)
     # ducking: abaixa a música quando há voz
     env = np.convolve(np.abs(voz), np.ones(4410) / 4410, mode="same")
     mix *= 1 - 0.55 * np.clip(env * 8, 0, 1)
-    final = np.clip(mix + voz, -1, 1)
-    audio = os.path.join(tmp, "audio.wav")
-    with wave.open(audio, "wb") as w:
+    return np.clip(mix + voz, -1, 1)
+
+
+def salvar_wav(caminho, x):
+    with wave.open(caminho, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(SR)
-        w.writeframes((final * 32767).astype(np.int16).tobytes())
+        w.writeframes((x * 32767).astype(np.int16).tobytes())
+
+
+def roteiro(inicios, caminho):
+    with open(caminho, "w") as f:
+        f.write("Roteiro para narrar no CapCut (Texto -> Texto para fala).\n"
+                "Coloque cada trecho começando no tempo indicado.\n\n")
+        for c, ini in zip(CENAS, inicios):
+            m, s_ = divmod(ini + 0.25, 60)
+            f.write(f"[{int(m):02d}:{s_:04.1f}] {c['fala']}\n\n")
+
+
+def main():
+    com_voz = "--sem-voz" not in sys.argv
+    saida = OUT if com_voz else os.path.join(PASTA, "video_sem_voz.mp4")
+    tmp = tempfile.mkdtemp()
+    vozes = [tts(c["fala"], os.path.join(tmp, f"v{i}.wav"))
+             for i, c in enumerate(CENAS)]
+    duracoes = [len(v) / SR + PAUSA + 0.25 for v in vozes]
+    inicios = np.cumsum([0] + duracoes[:-1])
+    total = sum(duracoes) + 0.6
+
+    audio = os.path.join(tmp, "audio.wav")
+    salvar_wav(audio, mixar(vozes, inicios, total, com_voz))
+    if not com_voz:
+        roteiro(inicios, os.path.join(PASTA, "roteiro_capcut.txt"))
 
     proc = subprocess.Popen(
         ["ffmpeg", "-y", "-loglevel", "error",
@@ -376,7 +400,7 @@ def main():
          "-af", "loudnorm=I=-14:TP=-1.5",
          "-c:v", "libx264", "-preset", "medium", "-crf", "20",
          "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
-         "-movflags", "+faststart", "-shortest", OUT],
+         "-movflags", "+faststart", "-shortest", saida],
         stdin=subprocess.PIPE)
     nq = int(total * FPS)
     for f in range(nq):
@@ -389,7 +413,7 @@ def main():
             print(f"quadro {f}/{nq}", flush=True)
     proc.stdin.close()
     proc.wait()
-    print("pronto:", OUT, f"({total:.1f}s)")
+    print("pronto:", saida, f"({total:.1f}s)")
 
 
 if __name__ == "__main__":
