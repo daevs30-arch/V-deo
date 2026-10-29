@@ -6,6 +6,7 @@ câmera, animações, legendas e boca dos personagens.
 
 Uso: python3 roteiro.py  ->  build/audio.wav + build/timeline.json
 """
+import glob
 import json
 import os
 import subprocess
@@ -15,7 +16,11 @@ import numpy as np
 
 SR = 44100
 FPS = 30
-BUILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build")
+BASE = os.path.dirname(os.path.abspath(__file__))
+BUILD = os.path.join(BASE, "build")
+# Áudios próprios: vozes/01_lia.mp3, vozes/02_faisca.wav ... (número da fala no ROTEIRO).
+# Quando existir um arquivo para a fala, ele substitui a voz sintética.
+VOZES = os.path.join(BASE, "vozes")
 
 INTRO = 4.5   # plano externo da casa
 OUTRO = 3.0   # cartão final
@@ -42,9 +47,15 @@ ROTEIRO = [
 ]
 
 
-def tts(speaker, text, path):
-    subprocess.run(["espeak-ng", *VOICES[speaker], "-w", path, text], check=True,
-                   stderr=subprocess.DEVNULL)
+def tts(speaker, text, path, numero=None):
+    proprio = sorted(glob.glob(os.path.join(VOZES, f"{numero:02d}_*.*"))) if numero else []
+    if proprio:
+        print(f"  fala {numero:02d}: usando {os.path.basename(proprio[0])}")
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", proprio[0], "-ac", "1",
+                        "-ar", str(SR), "-c:a", "pcm_s16le", path], check=True)
+    else:
+        subprocess.run(["espeak-ng", *VOICES[speaker], "-w", path, text], check=True,
+                       stderr=subprocess.DEVNULL)
     with wave.open(path) as wf:
         sr = wf.getframerate()
         x = np.frombuffer(wf.readframes(wf.getnframes()), dtype=np.int16).astype(float) / 32768
@@ -131,11 +142,11 @@ def main():
     clips, lines, shots = [], [], []
     t = INTRO
     shots.append({"name": "externa", "start": 0.0})
-    for speaker, text, shot, pre in ROTEIRO:
+    for numero, (speaker, text, shot, pre) in enumerate(ROTEIRO, 1):
         if shots[-1]["name"] != shot:
             shots.append({"name": shot, "start": round(t, 3)})
         t += pre
-        clip = tts(speaker, text, os.path.join(BUILD, "tmp.wav"))
+        clip = tts(speaker, text, os.path.join(BUILD, "tmp.wav"), numero)
         dur = len(clip) / SR
         clips.append((speaker, clip, t))
         lines.append({"speaker": speaker, "text": text, "start": round(t, 3),
