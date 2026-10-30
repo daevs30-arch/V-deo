@@ -15,4 +15,4 @@ começo do nome. Falas sem arquivo continuam com a voz sintética.
 | `08_faisca` | Faísca | Curiosidade é o meu combustível! Até a próxima! |
 
 Depois rode:
-`python3 roteiro_lua.py && node render.mjs --cena lua.html --build build/lua --out ../a_lua_muda_de_forma.mp4`
+`python3 roteiro_lua.py && node render.mjs --cena lua.html --build build/lua --out ../a_lua_muda_de_forma.mp4 --titulo "Por que a Lua muda de forma?"`

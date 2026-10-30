@@ -1,7 +1,8 @@
 // Renderiza cena.html quadro a quadro no Chromium headless e gera o MP4.
 // Uso: node render.mjs                -> ../por_que_o_ceu_e_azul.mp4
 //      node render.mjs --stills 5,12  -> build/still_5.jpg, build/still_12.jpg
-//      node render.mjs --cena lua.html --build build/lua --out ../a_lua_muda_de_forma.mp4
+//      node render.mjs --cena lua.html --build build/lua --out ../a_lua_muda_de_forma.mp4 \
+//        --titulo "Por que a Lua muda de forma?"
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 import { createServer } from 'node:http';
@@ -54,7 +55,7 @@ if (args.includes('--perfil')) {
   const fps = 30, n = Math.round(total * fps);
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-r', String(fps), '-i', '-',
     '-i', path.join(buildDir, 'audio.wav'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19',
-    '-pix_fmt', 'yuv420p', '-metadata', 'title=Por que o céu é azul? | Faísca Curioso',
+    '-pix_fmt', 'yuv420p', '-metadata', `title=${opt('--titulo', 'Por que o céu é azul?')} | Faísca Curioso`,
     '-metadata', 'artist=@faisca.curioso', '-metadata', 'comment=Curiosidades rápidas de ciência, espaço e do mundo, explicadas pelo Faísca.',
     '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', out],
     { stdio: ['pipe', 'inherit', 'inherit'] });
