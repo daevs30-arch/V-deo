@@ -41,3 +41,22 @@ Hoje à noite olha pro céu e me conta: em que fase a Lua está? 👇
 
 #curiosidades #vocesabia #lua #fasesdalua #astronomia #ciencia #espaco #aprendendo #animacao3d #faiscacurioso
 ```
+
+---
+
+# Post de comemoração: 10 seguidores
+
+**Imagens:** `comemoracao_10_seguidores.png` (feed, 1080×1350) e `comemoracao_10_seguidores_story.png` (stories, 1080×1920)
+
+**Legenda para postar:**
+```
+10 SEGUIDORES! 🎉🥳
+
+Muito obrigado a cada um de vocês que chegou até aqui! O Faísca tá dando pulinhos de alegria ⚡🧡
+
+Nossa próxima meta é chegar a 100 seguidores! 🚀 Se você curte aprender coisas novas, compartilha nossos vídeos com aquele amigo curioso 👇
+
+E comenta: qual curiosidade você quer que o Faísca explique no próximo vídeo?
+
+#faiscacurioso #curiosidades #obrigado #10seguidores #rumoaos100 #vocesabia #ciencia
+```

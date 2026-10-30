@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>10 seguidores</title>
+<style>
+  /* formato via ?formato=feed (1080x1350) ou ?formato=story (1080x1920) */
+  html, body { margin: 0; width: 1080px; height: var(--h); overflow: hidden;
+    font-family: 'Inter Display', 'Inter', sans-serif; }
+  body { --h: 1350px; --top: 40px; --scene: 640px; --card: 60px;
+    background: radial-gradient(circle at 50% 38%, #d9f3ff 0, #5cc0ff 38%, #1f6fd6 100%); }
+  body.story { --h: 1920px; --top: 190px; --scene: 900px; --card: 210px; }
+  #rays { position: absolute; inset: 0; opacity: .22;
+    background: repeating-conic-gradient(from 0deg at 50% 38%, #fff 0 7.5deg, transparent 7.5deg 22.5deg); }
+  canvas { position: absolute; left: 0; top: calc(var(--top) + 130px); }
+  .stroke { paint-order: stroke fill; -webkit-text-stroke: 18px #1d1b2e; }
+  #thanks { position: absolute; top: var(--top); width: 100%; text-align: center; font-weight: 900;
+    font-size: 130px; color: #ffd60a; letter-spacing: 2px; }
+  #seg { position: absolute; top: calc(var(--top) + var(--scene) + 110px); width: 100%; text-align: center;
+    font-weight: 900; font-size: 92px; color: #fff; }
+  #card { position: absolute; left: 70px; right: 70px; bottom: var(--card); background: #fff;
+    border: 8px solid #1d1b2e; border-radius: 44px; padding: 34px 50px 40px;
+    box-shadow: 0 14px 0 rgba(29, 27, 46, .35); text-align: center; }
+  #card .l1 { font-weight: 800; font-size: 44px; color: #5a5870; }
+  #card .l2 { font-weight: 900; font-size: 74px; color: #1d1b2e; line-height: 1.1; margin-top: 4px; }
+  #card .l2 b { color: #ff7a2f; }
+  #bar { position: relative; height: 54px; margin: 34px 0 14px; background: #e6eef8; border-radius: 27px;
+    border: 5px solid #1d1b2e; }
+  #bar .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 10%; border-radius: 22px;
+    background: linear-gradient(90deg, #ffb703, #ff7a2f); }
+  #bar img { position: absolute; left: 10%; top: 50%; width: 92px; height: 92px; border-radius: 50%;
+    border: 5px solid #1d1b2e; transform: translate(-50%, -50%); }
+  #bar .end { position: absolute; right: -14px; top: 50%; transform: translateY(-50%); width: 76px; height: 76px;
+    border-radius: 50%; background: #ffd60a; border: 5px solid #1d1b2e; font-weight: 900; font-size: 26px;
+    display: flex; align-items: center; justify-content: center; color: #1d1b2e; }
+  #nums { display: flex; justify-content: space-between; font-weight: 800; font-size: 36px; color: #5a5870; }
+  #handle { position: absolute; bottom: calc(var(--card) - 58px); width: 100%; text-align: center;
+    font-weight: 800; font-size: 36px; color: #fff; text-shadow: 0 3px 8px rgba(0, 0, 0, .4); }
+  body.story #handle { bottom: 120px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="rays"></div>
+<div id="thanks" class="stroke">OBRIGADO!</div>
+<div id="seg" class="stroke">SEGUIDORES</div>
+<div id="card">
+  <div class="l1">Rumo à próxima meta:</div>
+  <div class="l2"><b>100</b> SEGUIDORES!</div>
+  <div id="bar"><div class="fill"></div><img src="perfil.png"><div class="end">100</div></div>
+  <div id="nums"><span>Já somos 10</span><span>Faltam 90!</span></div>
+</div>
+<div id="handle">@faisca.curioso</div>
+<script type="module">
+import * as THREE from 'three';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { rng, M, mesh, sph, cyl, makeFaisca } from './comum.js';
+
+const story = location.search.includes('story');
+if (story) document.body.classList.add('story');
+const W = 1080, H = story ? 900 : 640;
+const rand = rng(10);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+renderer.setClearColor(0x000000, 0);
+document.body.insertBefore(renderer.domElement, document.getElementById('thanks'));
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 100);
+camera.position.set(0, 1.0, story ? 5.3 : 5.2); camera.lookAt(0, 1.0, 0);
+
+scene.add(new THREE.HemisphereLight('#fff3e0', '#5c7fb8', 1.3));
+const key = new THREE.DirectionalLight('#ffffff', 2.4); key.position.set(2.5, 4, 5);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 4;
+Object.assign(key.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4 });
+scene.add(key);
+const rim = new THREE.DirectionalLight('#9fe8ff', 1.5); rim.position.set(-3, 2, -3); scene.add(rim);
+
+// "10" dourado em 3D
+const font = new FontLoader().parse(await (await fetch('node_modules/three/examples/fonts/helvetiker_bold.typeface.json')).json());
+const tg = new TextGeometry('10', { font, size: 1.75, depth: 0.45, curveSegments: 10,
+  bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.05, bevelSegments: 5 });
+tg.computeBoundingBox(); tg.center();
+const gold = M('#ffc93c', { metalness: 0.65, roughness: 0.25, emissive: '#7a4a00', emissiveIntensity: 0.25 });
+const ten = mesh(tg, gold, [0, 1.35, -0.9], scene);
+ten.rotation.set(0.05, -0.12, 0.04);
+
+// Faísca comemorando com chapéu de festa
+const fa = makeFaisca(); scene.add(fa.root);
+fa.root.position.set(0.05, -0.05, 0.55); fa.root.rotation.y = -0.18; fa.root.scale.setScalar(1.15);
+fa.body.rotation.z = 0.06;
+fa.arms[0].rotation.z = -2.55; fa.arms[1].rotation.z = 2.7;
+fa.mouth.scale.set(1.6, 1.05, 0.45);
+fa.legs[0].rotation.x = -0.3; fa.legs[1].rotation.x = 0.35;
+fa.star.material.emissiveIntensity = 1.8; fa.star.rotation.set(0.4, 0.6, 0);
+const hat = new THREE.Group(); hat.position.set(-0.27, 0.46, 0.05); hat.rotation.z = 0.35; fa.body.add(hat);
+const hatTex = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#ff4d8d'; g.fillRect(0, 0, 256, 256);
+  g.fillStyle = '#ffd60a'; for (let i = 0; i < 6; i++) g.fillRect(0, i * 44, 256, 18);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+mesh(new THREE.ConeGeometry(0.15, 0.42, 32), M('#ffffff', { map: hatTex }), [0, 0.21, 0], hat);
+mesh(sph(0.06, 12, 10), M('#ffffff'), [0, 0.44, 0], hat);
+
+// balões
+const balloonC = ['#ff4d8d', '#06d6a0', '#ffd60a', '#9b5de5', '#ff7a2f', '#4fb3ff'];
+for (const [x, y, z, c] of [[-1.75, 1.7, -0.3, 0], [-1.35, 2.35, -0.8, 1], [1.7, 1.9, -0.4, 3], [1.45, 2.6, -0.9, 4], [-1.9, 0.9, 0.2, 5], [1.95, 1.0, 0.1, 2]]) {
+  const b = mesh(sph(0.36, 32, 24), M(balloonC[c], { roughness: 0.25, metalness: 0.05 }), [x, y, z], scene, false);
+  b.scale.set(0.9, 1.1, 0.9);
+  mesh(new THREE.ConeGeometry(0.05, 0.08, 12), M(balloonC[c]), [x, y - 0.42, z], scene).rotation.x = Math.PI;
+  const pts = []; for (let i = 0; i <= 20; i++) pts.push(new THREE.Vector3(x + Math.sin(i * 0.6) * 0.05, y - 0.46 - i * 0.07, z));
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#ffffff' })));
+}
+// confetes
+const confC = ['#ff4d8d', '#06d6a0', '#ffd60a', '#9b5de5', '#ffffff', '#ff7a2f'];
+for (let i = 0; i < 140; i++) {
+  const x = (rand() - 0.5) * 6, y = -1 + rand() * 4.2, z = -1.5 + rand() * 2.8;
+  if (Math.abs(x) < 0.9 && y < 1 && z > 0) continue;
+  const g = rand() < 0.5 ? new THREE.BoxGeometry(0.09, 0.04, 0.005) : new THREE.CylinderGeometry(0.035, 0.035, 0.005, 12);
+  const c = mesh(g, M(confC[i % confC.length], { side: THREE.DoubleSide, roughness: 0.5 }), [x, y, z], scene, false);
+  c.rotation.set(rand() * 6, rand() * 6, rand() * 6);
+}
+// estrelinhas brilhantes
+for (let i = 0; i < 10; i++) {
+  const a = i / 10 * Math.PI * 2;
+  mesh(new THREE.OctahedronGeometry(0.07, 0), new THREE.MeshBasicMaterial({ color: '#fff3a0' }),
+    [Math.cos(a) * 2.4, 1.3 + Math.sin(a) * 1.4, -1.2], scene, false).rotation.set(a, a, 0);
+}
+// "chão" invisível que só recebe sombra
+const shadowFloor = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), new THREE.ShadowMaterial({ opacity: 0.25 }));
+shadowFloor.rotation.x = -Math.PI / 2; shadowFloor.position.y = -0.74; shadowFloor.receiveShadow = true; scene.add(shadowFloor);
+
+renderer.render(scene, camera);
+window.ready = true;
+</script>
+</body>
+</html>

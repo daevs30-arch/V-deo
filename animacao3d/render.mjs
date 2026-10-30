@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const TYPES = { '.png': 'image/png', '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
+const TYPES = { '.png': 'image/png', '.mjs': 'text/javascript', '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
 const server = createServer(async (req, res) => {
   try {
     const p = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname));
@@ -39,7 +39,15 @@ await page.goto(`http://localhost:${port}/${cena}`);
 await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
 const total = await page.evaluate(() => window.TOTAL);
 
-if (args.includes('--perfil')) {
+if (args.includes('--imagem')) {
+  // imagem estática: node render.mjs --imagem "comemoracao.html?story" --tamanho 1080x1920 --out ../x.png
+  const [w, h] = opt('--tamanho', '1080x1350').split('x').map(Number);
+  await page.setViewportSize({ width: w, height: h });
+  await page.goto(`http://localhost:${port}/${opt('--imagem')}`);
+  await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
+  await page.screenshot({ path: out, clip: { x: 0, y: 0, width: w, height: h } });
+  console.log('ok:', out);
+} else if (args.includes('--perfil')) {
   await page.goto(`http://localhost:${port}/cena.html?perfil`);
   await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
   await page.setViewportSize({ width: 1080, height: 1080 });
