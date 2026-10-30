@@ -524,7 +524,7 @@ function animate(t) {
     const sc = Math.max(0.001, k) * (1 + 0.08 * Math.sin(t * 4 + i));
     ic.scale.set(0.5 * sc, 0.586 * sc, 1);
   });
-  const dk = easeBack((t - L[5].start - (L[5].end - L[5].start) * 0.62) / 0.45);
+  const dk = easeBack((t - L[5].start - (L[5].end - L[5].start) * 0.76) / 0.45);
   daysLbl.visible = dk > 0.01; daysLbl.scale.set(0.26 * 3.2 * Math.max(0.001, dk), 0.26 * Math.max(0.001, dk), 1);
 
   overlay(t);
