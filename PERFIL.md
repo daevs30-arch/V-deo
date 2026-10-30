@@ -26,3 +26,18 @@ Comenta aqui qual curiosidade você quer ver no próximo vídeo! 👇
 
 #curiosidades #vocesabia #ciencia #ceuazul #pordosol #aprendendo #ciencianotiktok #educacao #animacao3d #faiscacurioso
 ```
+
+---
+
+# Descrição do vídeo "Por que a Lua muda de forma?"
+
+**Legenda para postar:**
+```
+Por que a Lua muda de forma? 🌙🤔
+
+O Theo viu a Lua pela metade e o Faísca chegou como estrela cadente pra explicar: a Lua não muda de forma de verdade! O Sol ilumina sempre metade dela, e conforme ela gira em volta da Terra, a gente vê pedaços diferentes dessa metade. Uma volta completa leva uns 29 dias e meio 🌑🌓🌕🌗
+
+Hoje à noite olha pro céu e me conta: em que fase a Lua está? 👇
+
+#curiosidades #vocesabia #lua #fasesdalua #astronomia #ciencia #espaco #aprendendo #animacao3d #faiscacurioso
+```
