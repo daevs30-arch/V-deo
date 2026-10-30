@@ -1,0 +1,538 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Por que a Lua muda de forma?</title>
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000;
+    font-family: 'Inter Display', 'Inter', sans-serif; }
+  canvas { display: block; }
+  #ov { position: absolute; inset: 0; pointer-events: none; }
+  .stroke { paint-order: stroke fill; -webkit-text-stroke: 16px #1d1b2e; }
+  #title { position: absolute; top: 260px; width: 100%; text-align: center; }
+  #title .a { font-weight: 900; font-size: 92px; color: #fff; display: block; }
+  #title .b { font-weight: 900; font-size: 140px; color: #ffd60a; display: block; line-height: 1.05; }
+  #sub { position: absolute; left: 60px; right: 60px; bottom: 230px; background: #fff;
+    border: 8px solid #1d1b2e; border-radius: 44px; padding: 52px 44px 40px;
+    box-shadow: 0 14px 0 rgba(29, 27, 46, .35); transform-origin: 50% 100%; }
+  #who { position: absolute; top: -46px; left: 40px; padding: 8px 30px; border-radius: 30px;
+    font-weight: 900; font-size: 46px; color: #fff; border: 7px solid #1d1b2e; }
+  #txt { font-weight: 800; font-size: 54px; line-height: 1.28; color: #1d1b2e; }
+  #txt .k { color: #e8a200; }
+  #txt .s { color: #ff7a2f; }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+  #card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; opacity: 0; background: rgba(10, 12, 40, .45); }
+  #card .c1 { font-weight: 900; font-size: 110px; color: #ffd60a; }
+  #card .c2 { font-weight: 900; font-size: 78px; color: #fff; text-align: center; line-height: 1.1; margin-top: 20px; }
+  #card .c3 { margin-top: 44px; max-width: 860px; font-weight: 700; font-size: 44px; color: #fff;
+    text-align: center; line-height: 1.3; text-shadow: 0 3px 10px rgba(0, 0, 0, .6); }
+  #card .who { margin-top: 70px; display: flex; align-items: center; gap: 22px; font-weight: 900;
+    font-size: 52px; color: #fff; text-shadow: 0 3px 10px rgba(0, 0, 0, .6); }
+  #card .who img { width: 120px; height: 120px; border-radius: 50%; border: 6px solid #fff; }
+  #card .btn { margin-top: 70px; background: #0095f6; color: #fff; font-weight: 900; font-size: 70px;
+    padding: 26px 70px; border-radius: 26px; border: 8px solid #1d1b2e; }
+  #prog { position: absolute; left: 60px; right: 60px; top: 70px; height: 14px; border-radius: 7px;
+    background: rgba(255, 255, 255, .35); overflow: hidden; }
+  #prog div { height: 100%; background: #fff; width: 0; }
+  #handle { position: absolute; top: 106px; left: 60px; display: flex; align-items: center; gap: 14px;
+    font-weight: 800; font-size: 38px; color: #fff; text-shadow: 0 3px 8px rgba(0, 0, 0, .45); }
+  #handle img { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #fff; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="ov">
+  <div id="title"><span class="a stroke">VOCÊ SABE...</span><span class="b stroke">POR QUE A LUA<br>MUDA DE<br>FORMA?</span></div>
+  <div id="sub"><div id="who"></div><div id="txt"></div></div>
+  <div id="card"><div class="c1 stroke">Gostou?</div>
+    <div class="c2 stroke">Siga para mais<br>curiosidades<br>com o Faísca!</div>
+    <div class="c3">Curiosidades rápidas de ciência, espaço e do mundo, explicadas pelo Faísca.</div>
+    <div class="who"><img src="perfil.png">@faisca.curioso</div>
+    <div class="btn">+ SEGUIR</div></div>
+  <div id="handle"><img src="perfil.png">@faisca.curioso</div>
+  <div id="flash"></div>
+  <div id="prog"><div></div></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { clamp, lerp, smooth, easeOut, easeBack, rng, M, mesh, box, rbox, sph, cap, cyl, glow, canvasTex,
+  label, makeFaisca, makeOverlay } from './comum.js';
+
+const TL = await (await fetch('build/lua/timeline.json')).json();
+const W = 1080, H = 1920;
+const S = Object.fromEntries(TL.shots.map(s => [s.name, s]));
+const rand = rng(7);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, W / H, 0.05, 400);
+
+// ------------------------------------------------------------ céu noturno
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false,
+  vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+  fragmentShader: `varying vec3 vP;
+    void main(){
+      float h = clamp(vP.y, 0., 1.);
+      vec3 c = mix(vec3(.30,.27,.62), vec3(.05,.07,.24), pow(h, .55));
+      c += vec3(.25,.12,.3) * pow(1. - h, 6.);
+      gl_FragColor = vec4(c, 1.);
+    }`,
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 16), skyMat); scene.add(sky);
+{
+  const pos = [], col = [];
+  for (let i = 0; i < 900; i++) {
+    const th = rand() * Math.PI * 2, y = 0.08 + rand() * 0.92, r = Math.sqrt(1 - y * y);
+    pos.push(Math.cos(th) * r * 140, y * 140, Math.sin(th) * r * 140);
+    const b = 0.6 + rand() * 0.4; col.push(b, b, b * (0.9 + rand() * 0.1));
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 2.2, sizeAttenuation: false, vertexColors: true })));
+}
+// Lua no céu: metade iluminada (minguante, como vista do Brasil: lado direito aceso)
+const moonPhaseMat = (litDir) => new THREE.ShaderMaterial({
+  uniforms: { uSun: { value: litDir } },
+  vertexShader: 'varying vec3 vN; varying vec3 vO; void main(){ vN = normalize((modelMatrix * vec4(normal,0.)).xyz); vO = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+  fragmentShader: `varying vec3 vN; varying vec3 vO; uniform vec3 uSun;
+    float hash(vec3 p){ return fract(sin(dot(p, vec3(12.9898,78.233,37.719))) * 43758.5453); }
+    void main(){
+      float l = smoothstep(-.04, .08, dot(normalize(vN), normalize(uSun)));
+      vec3 p = normalize(vO) * 6.;
+      float crater = smoothstep(.55, .9, hash(floor(p))) * .12;
+      vec3 lit = vec3(1., .97, .86) - crater, dark = vec3(.10,.11,.24);
+      gl_FragColor = vec4(mix(dark, lit, l), 1.);
+    }`,
+});
+const skyMoon = new THREE.Mesh(sph(4.2, 48, 32), moonPhaseMat(new THREE.Vector3(1, 0, 0.12)));
+skyMoon.position.set(-24, 34, -62); scene.add(skyMoon);
+const moonHalo = mesh(sph(8, 32, 16), glow('#9fb4ff', 0.12), [-24, 34, -63], scene, false);
+
+// ------------------------------------------------------------ luzes
+const hemi = new THREE.HemisphereLight('#7d8be0', '#1f2b3d', 1.0); scene.add(hemi);
+const moonLight = new THREE.DirectionalLight('#c3cfff', 1.5);
+moonLight.position.set(-5, 10, 3);
+moonLight.castShadow = true;
+moonLight.shadow.mapSize.set(2048, 2048);
+Object.assign(moonLight.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
+moonLight.shadow.bias = -0.0005; moonLight.shadow.radius = 4;
+scene.add(moonLight);
+const fill = new THREE.DirectionalLight('#ffe4c4', 0.9); fill.position.set(2, 3, 8); scene.add(fill);
+const houseLight = new THREE.PointLight('#ffae5c', 6, 9, 1.4); houseLight.position.set(4.2, 1.9, -1.2); scene.add(houseLight);
+
+// ------------------------------------------------------------ quintal
+const grassTex = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#3d8a4a'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2500; i++) {
+    g.fillStyle = `hsla(${110 + rand() * 30}, 45%, ${28 + rand() * 18}%, .8)`;
+    g.fillRect(rand() * w, rand() * h, 2, 5 + rand() * 6);
+  }
+});
+grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping; grassTex.repeat.set(10, 10);
+mesh(new THREE.CircleGeometry(60, 64), M('#ffffff', { map: grassTex, roughness: 1 }), [0, 0, 0], scene, false).rotation.x = -Math.PI / 2;
+// caminho de pedras
+for (let i = 0; i < 6; i++) {
+  const p = mesh(cyl(0.28, 0.3, 0.05, 10), M('#9a9aa8', { roughness: 1 }), [2.6 - i * 0.35, 0.02, 1.5 - i * 0.9], scene, false);
+  p.scale.set(1, 1, 0.75);
+}
+// cerca
+const woodM = M('#9b6b4a', { roughness: 0.9 });
+for (let x = -9; x <= 9; x += 0.45) {
+  const plank = mesh(box(0.34, 1.4, 0.07), woodM, [x, 0.7, -4.6], scene);
+  const tip = mesh(new THREE.ConeGeometry(0.24, 0.2, 4), woodM, [x, 1.5, -4.6], scene);
+  tip.rotation.y = Math.PI / 4; tip.scale.z = 0.3;
+}
+for (const y of [0.4, 1.05]) mesh(box(18.5, 0.12, 0.06), woodM, [0, y, -4.53], scene);
+// varal de luzinhas
+const bulbs = [];
+const bulbC = ['#ffd166', '#ff7b8f', '#7bdff2', '#b8f2a1', '#ffffff'];
+for (let i = 0; i <= 40; i++) {
+  const u = i / 40, x = lerp(-6, 4, u), y = 2.5 - Math.sin(u * Math.PI * 3) ** 2 * 0.0 - Math.sin((u * 3 % 1) * Math.PI) * 0.45;
+  const b = mesh(sph(0.055, 10, 8), new THREE.MeshBasicMaterial({ color: bulbC[i % 5] }), [x, y, -4.3], scene, false);
+  const h = mesh(sph(0.13, 10, 8), glow(bulbC[i % 5], 0.25), [x, y, -4.3], scene, false);
+  bulbs.push({ b, h, ph: rand() * 6 });
+}
+for (const x of [-6, -2.67, 0.67, 4]) mesh(cyl(0.05, 0.05, 2.6, 8), woodM, [x, 1.3, -4.35], scene);
+// casa ao lado (parede com janela acesa)
+const house = new THREE.Group(); house.position.set(5.6, 0, -1.2); scene.add(house);
+mesh(box(0.3, 4.5, 7), M('#e9d8c4', { roughness: 0.9 }), [0, 2.25, 0], house);
+mesh(box(0.1, 1.2, 1.4), M('#ffd38a', { emissive: '#ffb347', emissiveIntensity: 1.4 }), [-0.16, 1.9, 0], house, false);
+for (const [p, s] of [[[-0.2, 1.9, 0], [0.06, 1.25, 0.08]], [[-0.2, 1.9, 0], [0.06, 0.08, 1.45]],
+  [[-0.22, 1.25, 0], [0.18, 0.1, 1.7]], [[-0.22, 2.55, 0], [0.18, 0.1, 1.7]]]) mesh(box(...s), M('#ffffff'), p, house);
+mesh(box(0.08, 2.0, 1.0), M('#5a7bd6'), [-0.17, 1.0, 2.3], house);
+// árvore
+const tree = new THREE.Group(); tree.position.set(-4.3, 0, -3.4); scene.add(tree);
+mesh(cyl(0.22, 0.32, 2.2, 10), M('#6b4428'), [0, 1.1, 0], tree);
+[[0, 2.7, 0, 1.2], [0.7, 2.3, 0.2, 0.85], [-0.75, 2.35, -0.1, 0.9], [0, 3.5, 0, 0.8]].forEach(([a, b, c, r], i) =>
+  mesh(new THREE.IcosahedronGeometry(r, 1), M(i % 2 ? '#2f7a45' : '#3a8f52', { flatShading: true }), [a, b, c], tree));
+// barraca
+const tent = new THREE.Group(); tent.position.set(2.9, 0, -3.1); tent.rotation.y = -0.4; scene.add(tent);
+const tentM = M('#2fb5a8', { roughness: 0.8, flatShading: true });
+const tc = mesh(new THREE.ConeGeometry(1.2, 1.7, 4), tentM, [0, 0.85, 0], tent); tc.rotation.y = Math.PI / 4; tc.scale.z = 1.3;
+const flap = mesh(new THREE.ConeGeometry(0.42, 1.0, 3), M('#1a3a44'), [0, 0.5, 0.82], tent, false); flap.scale.z = 0.15;
+const lantern = mesh(sph(0.11, 16, 12), new THREE.MeshBasicMaterial({ color: '#ffe08a' }), [1.6, 0.18, -2.4], scene, false);
+mesh(sph(0.3, 16, 12), glow('#ffb347', 0.25), [1.6, 0.18, -2.4], scene, false);
+const lanternLight = new THREE.PointLight('#ffb347', 3, 4, 1.5); lanternLight.position.set(1.6, 0.4, -2.4); scene.add(lanternLight);
+// arbustos
+for (const [x, z, r] of [[-5.5, -1, 0.6], [-3.2, -4.0, 0.5], [4.6, -3.8, 0.55], [-6, 1.5, 0.7]])
+  mesh(new THREE.IcosahedronGeometry(r, 1), M('#2f7a45', { flatShading: true }), [x, r * 0.7, z], scene);
+// vaga-lumes
+const fireflies = [];
+for (let i = 0; i < 26; i++) {
+  const m = mesh(sph(0.03, 8, 6), new THREE.MeshBasicMaterial({ color: '#e9ff70' }), [0, 0, 0], scene, false);
+  const h = mesh(sph(0.09, 8, 6), glow('#d4ff4a', 0.35), [0, 0, 0], scene, false);
+  fireflies.push({ m, h, x: (rand() - 0.5) * 11, y: 0.4 + rand() * 1.8, z: -4.2 + rand() * 2.2, ph: rand() * 10, sp: 0.3 + rand() * 0.5 });
+}
+
+// telescópio
+const TEL = new THREE.Vector3(-1.5, 0, -0.95);
+const scope = new THREE.Group(); scope.position.copy(TEL); scene.add(scope);
+const metal = M('#2d2f3a', { roughness: 0.4, metalness: 0.5 });
+for (let i = 0; i < 3; i++) {
+  const a = i / 3 * Math.PI * 2;
+  const leg = mesh(cyl(0.02, 0.02, 1.15, 8), metal, [Math.cos(a) * 0.2, 0.55, Math.sin(a) * 0.2], scope);
+  leg.rotation.set(Math.sin(a) * 0.35, 0, -Math.cos(a) * 0.35);
+}
+const tubeP = new THREE.Group(); tubeP.position.y = 1.1; scope.add(tubeP);
+tubeP.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0),
+  new THREE.Vector3(-24, 34, -62).sub(new THREE.Vector3(-1.5, 1.1, -0.95)).normalize());
+mesh(cyl(0.085, 0.07, 0.9, 24), M('#f4f4f8', { roughness: 0.35 }), [0, 0.15, 0], tubeP);
+mesh(cyl(0.095, 0.095, 0.12, 24), M('#3b6fd6'), [0, 0.58, 0], tubeP);
+mesh(cyl(0.03, 0.03, 0.14, 12), metal, [0, -0.36, 0], tubeP);
+
+// ------------------------------------------------------------ Theo
+function makeTheo() {
+  const root = new THREE.Group();
+  const skin = M('#d9a066', { roughness: 0.55 });
+  const hair = M('#3b2416', { roughness: 0.9 });
+  const legs = [];
+  for (const sx of [-1, 1]) {
+    legs.push(mesh(cap(0.08, 0.32), skin, [sx * 0.11, 0.28, 0], root));
+    mesh(cyl(0.11, 0.1, 0.22, 16), M('#c9a26b'), [sx * 0.11, 0.5, 0], root);
+    const shoe = mesh(rbox(0.17, 0.11, 0.3, 0.05), M('#ffffff'), [sx * 0.11, 0.055, 0.05], root);
+    mesh(box(0.175, 0.03, 0.3), M('#3b6fd6'), [0, -0.035, 0], shoe, false);
+  }
+  const torso = new THREE.Group(); torso.position.y = 0.55; root.add(torso);
+  const shirt = M('#2ec27e', { roughness: 0.7 });
+  mesh(cap(0.23, 0.3), shirt, [0, 0.27, 0], torso);
+  // estrela no peito
+  const st = new THREE.Shape();
+  for (let i = 0; i < 10; i++) {
+    const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 0.045 : 0.1;
+    i ? st.lineTo(Math.cos(a) * r, Math.sin(a) * r) : st.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+  }
+  mesh(new THREE.ExtrudeGeometry(st, { depth: 0.02, bevelEnabled: false }), M('#ffd166'), [0, 0.32, 0.215], torso, false);
+  const arms = [];
+  for (const sx of [-1, 1]) {
+    const piv = new THREE.Group(); piv.position.set(sx * 0.28, 0.48, 0); torso.add(piv);
+    mesh(cap(0.075, 0.12), shirt, [0, -0.07, 0], piv);
+    mesh(cap(0.06, 0.22), skin, [0, -0.28, 0], piv);
+    mesh(sph(0.07, 12, 10), skin, [0, -0.44, 0], piv);
+    arms.push(piv);
+  }
+  const head = new THREE.Group(); head.position.y = 0.76; torso.add(head);
+  mesh(cyl(0.07, 0.08, 0.12, 12), skin, [0, -0.06, 0], head);
+  mesh(sph(0.27), skin, [0, 0.2, 0], head);
+  for (const sx of [-1, 1]) mesh(sph(0.06, 12, 8), skin, [sx * 0.27, 0.18, 0], head).scale.set(0.5, 1, 0.8);
+  const back = mesh(new THREE.SphereGeometry(0.285, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hair, [0, 0.21, -0.03], head);
+  back.rotation.x = -0.9;
+  for (let i = 0; i < 9; i++) {
+    const a = -1.3 + i * 0.32;
+    mesh(sph(0.06, 10, 8), hair, [Math.sin(a) * 0.25, 0.3 + Math.cos(a * 2) * 0.02, Math.cos(a) * 0.2 - 0.05], head);
+  }
+  // boné vermelho
+  const capM = M('#e63946', { roughness: 0.6 });
+  mesh(new THREE.SphereGeometry(0.29, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.42), capM, [0, 0.26, 0], head);
+  const brim = mesh(cyl(0.2, 0.2, 0.025, 24, 1), capM, [0, 0.39, 0.25], head);
+  brim.scale.set(1, 1, 0.75); brim.rotation.x = 0.15;
+  mesh(sph(0.03, 8, 6), M('#ffffff'), [0, 0.55, 0], head);
+  const eyes = [];
+  for (const sx of [-1, 1]) {
+    const e = mesh(sph(0.042, 16, 12), M('#1d1b2e', { roughness: 0.2 }), [sx * 0.1, 0.22, 0.245], head, false);
+    e.scale.z = 0.6; eyes.push(e);
+    mesh(sph(0.016, 8, 6), new THREE.MeshBasicMaterial({ color: '#ffffff' }), [0.015, 0.018, 0.03], e, false);
+    mesh(box(0.08, 0.02, 0.02), hair, [sx * 0.1, 0.3, 0.245], head, false).rotation.z = -sx * 0.12;
+  }
+  mesh(sph(0.03, 10, 8), M('#c98a55'), [0, 0.16, 0.27], head, false);
+  for (let i = 0; i < 5; i++) mesh(sph(0.008, 6, 4), M('#a8703f'), [(i - 2) * 0.035 + (i % 2) * 0.01, 0.15 - (i % 2) * 0.02, 0.255], head, false);
+  const mouth = mesh(sph(0.045, 16, 10), M('#6b1f2a'), [0, 0.08, 0.258], head, false);
+  return { root, torso, head, eyes, mouth, arms, legs };
+}
+
+const fa = makeFaisca(); scene.add(fa.root);
+const faGlow = new THREE.PointLight('#ffd166', 1.6, 3, 1.5); fa.star.add(faGlow);
+const theo = makeTheo(); scene.add(theo.root);
+const FA_POS = new THREE.Vector3(0.8, 0, -1.1), THEO_POS = new THREE.Vector3(-0.75, 0, -1.2);
+theo.root.position.copy(THEO_POS);
+
+// estrela cadente (chegada do Faísca)
+const shoot = mesh(sph(0.12, 16, 12), new THREE.MeshBasicMaterial({ color: '#fff6c9' }), [0, 0, 0], scene, false);
+const shootGlow = mesh(sph(0.35, 16, 12), glow('#ffd166', 0.5), [0, 0, 0], scene, false);
+const trail = [];
+for (let i = 0; i < 24; i++) trail.push(mesh(sph(0.09, 10, 8), glow(i % 3 ? '#ffd166' : '#ffffff', 0.55), [0, 0, 0], scene, false));
+const SHOOT_A = new THREE.Vector3(-9, 11, -16), SHOOT_B = new THREE.Vector3(FA_POS.x, 0.7, FA_POS.z);
+const shootAt = u => new THREE.Vector3().lerpVectors(SHOOT_A, SHOOT_B, u).add(new THREE.Vector3(0, Math.sin(u * Math.PI) * 2.0, 0));
+const burst = [];
+const burstColors = ['#ffd166', '#ff7b8f', '#06d6a0', '#4fb3ff', '#ffffff'];
+for (let i = 0; i < 30; i++) {
+  const m = mesh(new THREE.OctahedronGeometry(0.05, 0), new THREE.MeshBasicMaterial({ color: burstColors[i % 5] }), [0, 0, 0], scene, false);
+  const a = rand() * Math.PI * 2, e = rand() * 1.2 + 0.2;
+  burst.push({ m, v: new THREE.Vector3(Math.cos(a) * Math.cos(e), Math.sin(e) + 0.4, Math.sin(a) * Math.cos(e)).multiplyScalar(1.5 + rand() * 1.5) });
+}
+
+// ------------------------------------------------------------ holograma: Sol, Terra e Lua
+const holo = new THREE.Group(); holo.position.set(0, 2.6, -1.2); scene.add(holo);
+const disc = mesh(cyl(1.5, 1.5, 0.02, 64), glow('#5fd6ff', 0.12), [0, -0.75, 0], holo, false);
+const discRing = mesh(new THREE.TorusGeometry(1.5, 0.012, 8, 96), glow('#9fe8ff', 0.6), [0, -0.75, 0], holo, false);
+discRing.rotation.x = Math.PI / 2;
+const hSun = new THREE.Group(); holo.add(hSun);
+mesh(sph(0.22), new THREE.MeshBasicMaterial({ color: '#ffe066' }), [0, 0, 0], hSun, false);
+const hSunGlow = mesh(sph(0.38), glow('#ffb703', 0.35), [0, 0, 0], hSun, false);
+const sunLbl = label('Sol', { color: '#ffd166' }); sunLbl.position.set(0, -0.42, 0); hSun.add(sunLbl);
+const rays = [];
+for (let i = 0; i < 3; i++) {
+  const r = mesh(cyl(0.012, 0.012, 1, 8), glow('#fff3b0', 0.7), [0, 0, 0], holo, false);
+  rays.push(r);
+}
+const hMoon = new THREE.Group(); holo.add(hMoon);
+const moonUniform = new THREE.Vector3(-1, 0, 0);
+const hMoonMesh = mesh(sph(0.3, 48, 32), moonPhaseMat(moonUniform), [0, 0, 0], hMoon, false);
+const moonLbl = label('Lua'); moonLbl.position.set(0, -0.5, 0); hMoon.add(moonLbl);
+const earthTex = canvasTex(512, 256, (g, w, h) => {
+  g.fillStyle = '#2f7fe0'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#4fbf5d';
+  for (let i = 0; i < 14; i++) { g.beginPath(); g.ellipse(rand() * w, 40 + rand() * (h - 80), 20 + rand() * 50, 12 + rand() * 30, rand() * 3, 0, 7); g.fill(); }
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, 16); g.fillRect(0, h - 16, w, 16);
+});
+const hEarth = new THREE.Group(); holo.add(hEarth);
+const earthMesh = mesh(sph(0.24, 48, 32), new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.6, emissive: '#1a4fa0', emissiveIntensity: 0.35 }), [0, 0, 0], hEarth, false);
+const earthLbl = label('Terra', { color: '#9fe8ff' }); earthLbl.position.set(0, -0.42, 0); hEarth.add(earthLbl);
+const orbit = mesh(new THREE.TorusGeometry(0.9, 0.008, 8, 128), glow('#ffffff', 0.5), [0, 0, 0], holo, false);
+// fases (ícones desenhados como vistos do Brasil: crescente acesa à esquerda)
+function phaseIcon(kind) {
+  return canvasTex(256, 300, (g, w, h) => {
+    const cx = w / 2, cy = 118, r = 92;
+    g.fillStyle = '#1b1f4a'; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+    g.save(); g.beginPath(); g.arc(cx, cy, r, 0, 7); g.clip();
+    g.fillStyle = '#fff6d6';
+    if (kind === 'Cheia') g.fillRect(0, 0, w, h);
+    if (kind === 'Crescente') g.fillRect(0, 0, cx, h);
+    if (kind === 'Minguante') g.fillRect(cx, 0, w, h);
+    g.restore();
+    g.strokeStyle = '#9fe8ff'; g.lineWidth = 6; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.stroke();
+    g.font = '800 40px "Inter Display", Inter, sans-serif'; g.fillStyle = '#ffffff'; g.textAlign = 'center';
+    g.fillText(kind, cx, 282);
+  });
+}
+const PHASES = ['Nova', 'Crescente', 'Cheia', 'Minguante'];
+const icons = PHASES.map((k, i) => {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: phaseIcon(k), transparent: true, depthWrite: false }));
+  s.scale.set(0.5, 0.586, 1); s.position.set((i - 1.5) * 0.52, 1.05, 0.3); holo.add(s);
+  return s;
+});
+const daysLbl = label('29,5 dias', { color: '#1d1b2e', bg: '#ffd166', size: 0.26 });
+daysLbl.position.set(0, -1.05, 0.3); holo.add(daysLbl);
+
+// ------------------------------------------------------------ câmera
+const CAM = {
+  theo1: [[0.45, 1.3, 1.7], [-1.05, 1.05, -1.2], [0.2, 1.25, 1.35], [-0.95, 1.1, -1.2]],
+  entrada: [[0.2, 2.0, 5.6], [-0.6, 2.2, -4], [0, 1.6, 4.5], [0, 1.1, -1.2]],
+  modelo: [[0.35, 1.6, 3.5], [0, 2.55, -1.2], [-0.15, 1.75, 3.0], [0, 2.6, -1.2]],
+  orbita: [[0, 3.1, 3.6], [-0.3, 2.45, -1.2], [0.25, 3.1, 3.2], [-0.3, 2.5, -1.2]],
+  theo2: [[-0.2, 1.4, 1.35], [-0.78, 1.25, -1.2], [-0.3, 1.35, 1.05], [-0.78, 1.28, -1.2]],
+  fases: [[0, 2.7, 4.0], [0, 2.8, -1.2], [0, 2.7, 3.6], [0, 2.8, -1.2]],
+  final: [[0, 1.4, 4.3], [0, 1.05, -1.2], [0, 1.35, 3.6], [0, 1.1, -1.2]],
+  cartao: [[0, 1.35, 3.6], [0, 1.1, -1.2], [0, 1.3, 3.2], [-6, 9, -20]],
+};
+function setCamera(shot, t) {
+  const k = smooth((t - shot.start) / (shot.end - shot.start));
+  let p, q;
+  if (shot.name === 'externa') {
+    const e = smooth(k);
+    p = [lerp(0.4, 0.5, e), lerp(2.2, 1.6, e), lerp(8, 4.6, e)];
+    q = [lerp(-17, -0.8, e), lerp(25, 1.0, e), lerp(-48, -1.2, e)];
+  } else {
+    const c = CAM[shot.name];
+    p = c[0].map((v, i) => lerp(v, c[2][i], k));
+    q = c[1].map((v, i) => lerp(v, c[3][i], k));
+  }
+  p[0] += Math.sin(t * 0.9) * 0.02; p[1] += Math.sin(t * 1.3 + 1) * 0.015;
+  camera.position.set(...p); camera.lookAt(...q);
+}
+
+const overlay = makeOverlay(TL, {
+  names: { faisca: 'Faísca', theo: 'Theo' }, colors: { faisca: '#e07a52', theo: '#2ea86b' },
+  keyClass: w => /lua/i.test(w) ? 'k' : /sol/i.test(w) ? 's' : '',
+});
+
+// ------------------------------------------------------------ animação
+const speaking = (who, t) => TL.mouth[who][Math.min(TL.mouth[who].length - 1, Math.max(0, Math.round(t * TL.fps)))];
+const blink = (t, off) => ((t + off) % 3.3) < 0.13 ? 0.15 : 1;
+const bump = (t, t0, d) => Math.max(0, Math.sin(clamp((t - t0) / d) * Math.PI));
+const L = TL.lines;
+
+function animate(t) {
+  const shot = TL.shots.find(s => t >= s.start && t < s.end) || TL.shots[TL.shots.length - 1];
+  setCamera(shot, t);
+
+  bulbs.forEach((b, i) => { const k = 0.75 + 0.25 * Math.sin(t * 2 + b.ph); b.h.material.opacity = 0.25 * k; });
+  fireflies.forEach(f => {
+    f.m.position.set(f.x + Math.sin(t * f.sp + f.ph) * 0.6, f.y + Math.sin(t * f.sp * 1.7 + f.ph) * 0.25, f.z + Math.cos(t * f.sp + f.ph) * 0.5);
+    f.h.position.copy(f.m.position);
+    const on = clamp(Math.sin(t * 1.6 + f.ph * 3) * 2 + 0.5);
+    f.m.scale.setScalar(0.3 + on); f.h.material.opacity = 0.35 * on;
+  });
+  moonHalo.scale.setScalar(1 + Math.sin(t * 0.8) * 0.03);
+
+  // ---------------- Theo
+  const theoTalk = speaking('theo', t), faTalk = speaking('faisca', t);
+  const SCOPE_YAW = -1.25;
+  let yaw = SCOPE_YAW, lean = 0.25;
+  const turn = easeOut((t - L[0].start + 0.2) / 0.6);
+  yaw = lerp(SCOPE_YAW, 0.3, turn); lean = lerp(0.25, 0, turn);
+  if (t > S.entrada.start + 1.0) yaw = lerp(0.3, 0.8, smooth((t - S.entrada.start - 1.0) / 0.6));
+  if (t > S.final.start) yaw = lerp(0.8, 0.4, smooth((t - S.final.start) / 0.8));
+  theo.root.rotation.y = yaw;
+  theo.torso.rotation.x = lean;
+  theo.torso.position.y = 0.55 + Math.sin(t * 2.4) * 0.012;
+  // olha o céu na entrada e o holograma depois
+  const lookSky = smooth((t - S.entrada.start) / 0.4) * (1 - smooth((t - S.entrada.start - 1.1) / 0.4));
+  const lookHolo = smooth((t - S.modelo.start) / 0.6) * (1 - smooth((t - S.theo2.start) / 0.5))
+    + smooth((t - S.fases.start) / 0.6) * (1 - smooth((t - S.final.start) / 0.5));
+  theo.head.rotation.x = Math.sin(t * 1.7) * 0.04 - theoTalk * 0.06 - lookSky * 0.5 - lookHolo * 0.35;
+  theo.head.rotation.y = -lookSky * 0.4 - lookHolo * 0.45;
+  theo.head.rotation.z = Math.sin(t * 1.1) * 0.05 + (theoTalk > 0.1 ? Math.sin(t * 5) * 0.05 : 0);
+  theo.root.position.y = bump(t, S.entrada.start + 1.2, 0.45) * 0.2 + bump(t, L[6].start, 0.4) * 0.15;
+  theo.root.position.x = THEO_POS.x - smooth((t - S.entrada.start - 1.2) / 0.3) * 0.08;
+  theo.mouth.scale.set(1.3 - theoTalk * 0.3, 0.25 + theoTalk * 1.1, 0.5);
+  theo.eyes.forEach(e => { e.scale.y = blink(t, 0.4); });
+  let aL = 0.12 + Math.sin(t * 2.4) * 0.03, aR = 0.12 + Math.sin(t * 2.4 + 1) * 0.03;
+  // segurando o telescópio no começo
+  const hold = 1 - turn;
+  aR = lerp(aR, 1.3, hold); aL = lerp(aL, 0.9, hold);
+  if (theoTalk > 0.05) { aL += Math.sin(t * 6) * 0.25 * theoTalk + 0.3; aR += Math.sin(t * 6 + 2) * 0.2 * theoTalk; }
+  const wow = smooth((t - L[6].start) / 0.3) * (1 - smooth((t - L[6].start - 1.0) / 0.4));
+  aL = lerp(aL, 2.5, wow); aR = lerp(aR, 2.5, wow);
+  const wave = smooth((t - L[6].start - 1.3) / 0.4);
+  aR = lerp(aR, 2.6 + Math.sin(t * 12) * 0.35, wave);
+  theo.arms[0].rotation.z = -aL; theo.arms[1].rotation.z = aR;
+  theo.arms[1].rotation.x = -hold * 0.8;
+
+  // ---------------- estrela cadente + Faísca
+  const sk = (t - S.entrada.start - 0.1) / 1.1;
+  const shooting = sk > 0 && sk < 1;
+  shoot.visible = shootGlow.visible = shooting;
+  if (shooting) {
+    const u = Math.pow(sk, 1.4);
+    shoot.position.copy(shootAt(u)); shootGlow.position.copy(shoot.position);
+  }
+  trail.forEach((tr, i) => {
+    const u = Math.pow(clamp(sk - i * 0.012), 1.4);
+    tr.visible = shooting && sk - i * 0.012 > 0;
+    tr.position.copy(shootAt(u)); tr.scale.setScalar(1 - i / trail.length);
+  });
+  const appear = t - (S.entrada.start + 1.2);
+  fa.root.visible = appear > 0;
+  fa.root.scale.setScalar(Math.max(0.001, easeBack(appear / 0.5, 2.4)));
+  fa.root.position.set(FA_POS.x, 0.62 + Math.sin(t * 2.6) * 0.06, FA_POS.z);
+  let faYaw = -0.55 + (1 - easeOut(appear / 0.7)) * Math.PI * 2;
+  const explaining = t > S.modelo.start && t < S.theo2.start || t > S.fases.start && t < S.final.start;
+  const toHolo = smooth((t - S.modelo.start) / 0.6) * (1 - smooth((t - S.final.start) / 0.6));
+  faYaw = lerp(faYaw, -0.15, toHolo);
+  fa.root.rotation.y = faYaw;
+  const sq = 1 + faTalk * 0.06 * Math.sin(t * 14);
+  fa.body.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
+  fa.body.rotation.z = Math.sin(t * 1.9) * 0.05 + faTalk * Math.sin(t * 4) * 0.06;
+  fa.body.rotation.x = -faTalk * 0.05;
+  fa.mouth.scale.set(1.4 - faTalk * 0.3, 0.2 + faTalk * 1.1, 0.45);
+  fa.eyes.forEach(e => { e.scale.y = blink(t, 1.9); });
+  fa.star.rotation.y = t * 2; fa.star.rotation.x = t * 1.3;
+  fa.star.material.emissiveIntensity = 1.2 + Math.sin(t * 6) * 0.4 + (explaining ? 0.8 : 0);
+  faGlow.intensity = 1.6 + (explaining ? 1 : 0);
+  fa.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 3 + i * 2) * 0.25; });
+  let fL = 0.25 + Math.sin(t * 2.6) * 0.08, fR = 0.25 + Math.sin(t * 2.6 + 1) * 0.08;
+  if (faTalk > 0.05) { fL += Math.sin(t * 5) * 0.35 * faTalk + 0.3; fR += Math.sin(t * 5 + 2) * 0.3 * faTalk; }
+  fL = lerp(fL, 2.5 + Math.sin(t * 3) * 0.1, toHolo);
+  const hello = smooth((appear - 0.6) / 0.3) * (1 - smooth((t - S.modelo.start + 0.6) / 0.4));
+  fR = lerp(fR, 2.7 + Math.sin(t * 12) * 0.35, hello);
+  const bye = smooth((t - L[7].start - 0.8) / 0.4);
+  fR = lerp(fR, 2.7 + Math.sin(t * 12) * 0.35, bye); fL = lerp(fL, 2.7 + Math.sin(t * 12 + 1) * 0.35, bye);
+  fa.arms[0].rotation.z = -fL; fa.arms[1].rotation.z = fR;
+  burst.forEach(b => {
+    b.m.visible = appear > 0 && appear < 1.2;
+    if (!b.m.visible) return;
+    b.m.position.set(FA_POS.x + b.v.x * appear, 0.7 + b.v.y * appear - 2.5 * appear * appear, FA_POS.z + b.v.z * appear);
+    b.m.scale.setScalar(1 - appear / 1.2); b.m.rotation.set(appear * 5, appear * 7, 0);
+  });
+
+  // ---------------- holograma
+  const hIn = easeBack((t - S.modelo.start - 0.1) / 0.6);
+  const hOut = 1 - smooth((t - S.final.start) / 0.6);
+  const hs = Math.max(0.001, hIn * hOut);
+  holo.visible = hs > 0.01; holo.scale.setScalar(hs);
+  holo.position.y = 2.6 + Math.sin(t * 1.5) * 0.04;
+  disc.material.opacity = 0.12; discRing.rotation.z = t * 0.3;
+  hSunGlow.scale.setScalar(1 + Math.sin(t * 5) * 0.08);
+  // cena 1 (modelo): Sol à esquerda, Lua à direita. Cena 2 (órbita): Terra no meio, Lua girando.
+  const orb = smooth((t - S.orbita.start - 0.1) / 1.0);
+  hSun.position.set(lerp(-1.0, -1.35, orb), lerp(0.1, 0.35, orb), 0);
+  hSun.scale.setScalar(lerp(1, 0.75, orb));
+  hEarth.visible = orb > 0.01; hEarth.scale.setScalar(Math.max(0.001, easeBack(orb)));
+  earthMesh.rotation.y = t * 0.8;
+  orbit.visible = orb > 0.01; orbit.material.opacity = 0.5 * orb;
+  const TILT = 0.5;
+  orbit.rotation.x = Math.PI / 2 - TILT;
+  const ang = (t - S.orbita.start) * 1.1;
+  const orbPos = new THREE.Vector3(Math.cos(ang) * 0.9, 0, Math.sin(ang) * 0.9).applyAxisAngle(new THREE.Vector3(1, 0, 0), TILT);
+  hMoon.position.lerpVectors(new THREE.Vector3(0.35, 0, 0), orbPos, orb);
+  hMoon.scale.setScalar(lerp(1, 0.55, orb));
+  hMoonMesh.rotation.y = t * 0.4;
+  moonLbl.visible = orb < 0.5; sunLbl.visible = true; earthLbl.visible = orb > 0.5;
+  // raios do Sol até a Lua (só no modelo)
+  const rayK = smooth((t - L[2].start) / 0.5) * (1 - orb);
+  const sunW = new THREE.Vector3(), moonW = new THREE.Vector3();
+  hSun.getWorldPosition(sunW); hMoon.getWorldPosition(moonW);
+  rays.forEach((r, i) => {
+    r.visible = rayK > 0.01;
+    const a = hSun.position.clone().add(new THREE.Vector3(0.25, (i - 1) * 0.15, 0));
+    const b = a.clone().lerp(hMoon.position.clone().add(new THREE.Vector3(-0.32, (i - 1) * 0.15, 0)), rayK);
+    r.position.copy(a).add(b).multiplyScalar(0.5);
+    r.scale.set(1, Math.max(0.001, a.distanceTo(b)), 1);
+    r.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+  });
+  moonUniform.copy(sunW).sub(moonW).normalize();
+  // ícones das fases
+  icons.forEach((ic, i) => {
+    const k = easeBack((t - S.fases.start - 0.3 - i * 1.0) / 0.4);
+    ic.visible = k > 0.01;
+    const sc = Math.max(0.001, k) * (1 + 0.08 * Math.sin(t * 4 + i));
+    ic.scale.set(0.5 * sc, 0.586 * sc, 1);
+  });
+  const dk = easeBack((t - L[5].start - (L[5].end - L[5].start) * 0.62) / 0.45);
+  daysLbl.visible = dk > 0.01; daysLbl.scale.set(0.26 * 3.2 * Math.max(0.001, dk), 0.26 * Math.max(0.001, dk), 1);
+
+  overlay(t);
+}
+
+window.renderAt = t => { animate(t); renderer.render(scene, camera); return true; };
+window.TOTAL = TL.total;
+window.ready = true;
+</script>
+</body>
+</html>

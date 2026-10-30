@@ -5,6 +5,9 @@ arquivo timeline.json que a cena 3D (cena.html) usa para sincronizar
 câmera, animações, legendas e boca dos personagens.
 
 Uso: python3 roteiro.py  ->  build/audio.wav + build/timeline.json
+
+Outros episódios importam este módulo e chamam gerar() com o próprio roteiro
+(veja roteiro_lua.py).
 """
 import glob
 import json
@@ -47,14 +50,14 @@ ROTEIRO = [
 ]
 
 
-def tts(speaker, text, path, numero=None):
-    proprio = sorted(glob.glob(os.path.join(VOZES, f"{numero:02d}_*.*"))) if numero else []
+def tts(speaker, text, path, numero=None, voices=VOICES, vozes=VOZES):
+    proprio = sorted(glob.glob(os.path.join(vozes, f"{numero:02d}_*.*"))) if numero else []
     if proprio:
         print(f"  fala {numero:02d}: usando {os.path.basename(proprio[0])}")
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", proprio[0], "-ac", "1",
                         "-ar", str(SR), "-c:a", "pcm_s16le", path], check=True)
     else:
-        subprocess.run(["espeak-ng", *VOICES[speaker], "-w", path, text], check=True,
+        subprocess.run(["espeak-ng", *voices[speaker], "-w", path, text], check=True,
                        stderr=subprocess.DEVNULL)
     with wave.open(path) as wf:
         sr = wf.getframerate()
@@ -135,7 +138,31 @@ def sfx_pop():
     return np.sin(2 * np.pi * (300 + 900 * np.exp(-x * 40)) * x) * np.exp(-x * 25)
 
 
-def main():
+# efeitos sonoros por nome, usados nas listas de "sfx" dos episódios
+SFX = {
+    "whoosh": lambda rng: sfx_whoosh(rng),
+    "whoosh_longo": lambda rng: sfx_whoosh(rng, 1.0),
+    "pop": lambda rng: sfx_pop(),
+    "brilho": lambda rng: sfx_chime([784, 988, 1175, 1568]),
+    "subida": lambda rng: sfx_chime([523, 659, 784, 1047, 1319], 0.09, 4),
+    "cintilar": lambda rng: sfx_chime([1047, 1319, 1568, 2093], 0.05, 5),
+    "descida": lambda rng: sfx_chime([392, 330, 262], 0.15, 3),
+    "final": lambda rng: sfx_chime([523, 659, 784, 1047], 0.08, 4),
+}
+
+EPISODIO = {
+    "roteiro": ROTEIRO, "voices": VOICES, "vozes": VOZES, "build": BUILD,
+    "intro": INTRO, "outro": OUTRO,
+    # (plano, segundos depois do início do plano, efeito, volume)
+    "sfx": [("lia1", -0.4, "whoosh", 0.5), ("entrada", 0.25, "pop", 0.6),
+            ("entrada", 0.3, "brilho", 0.35), ("luz", 0.1, "subida", 0.35),
+            ("ar", 0.1, "cintilar", 0.25), ("espalha", 0.3, "whoosh_longo", 0.4),
+            ("por_do_sol", 0.2, "descida", 0.3), ("cartao", 0.1, "final", 0.4)],
+}
+
+
+def gerar(ep=EPISODIO):
+    BUILD, ROTEIRO, INTRO = ep["build"], ep["roteiro"], ep["intro"]
     os.makedirs(BUILD, exist_ok=True)
     rng = np.random.default_rng(3)
 
@@ -146,26 +173,26 @@ def main():
         if shots[-1]["name"] != shot:
             shots.append({"name": shot, "start": round(t, 3)})
         t += pre
-        clip = tts(speaker, text, os.path.join(BUILD, "tmp.wav"), numero)
+        clip = tts(speaker, text, os.path.join(BUILD, "tmp.wav"), numero, ep["voices"], ep["vozes"])
         dur = len(clip) / SR
         clips.append((speaker, clip, t))
         lines.append({"speaker": speaker, "text": text, "start": round(t, 3),
                       "end": round(t + dur, 3), "shot": shot})
         t += dur
     shots.append({"name": "cartao", "start": round(t + 1.0, 3)})
-    total = t + 1.0 + OUTRO
+    total = t + 1.0 + ep["outro"]
     for a, b in zip(shots, shots[1:]):
         a["end"] = b["start"]
     shots[-1]["end"] = round(total, 3)
 
     n = int(total * SR)
-    tracks = {"faisca": np.zeros(n), "lia": np.zeros(n)}
+    tracks = {k: np.zeros(n) for k in ep["voices"]}
     for speaker, clip, start in clips:
         add(tracks[speaker], clip, start)
     nframes = int(total * FPS)
     mouth = {k: envelope(v, nframes) for k, v in tracks.items()}
 
-    voice = tracks["faisca"] + tracks["lia"]
+    voice = sum(tracks.values())
     mus = music(total, rng)
     # abaixa a música quando alguém fala
     speech = np.convolve(np.abs(voice) > 0.02, np.ones(SR // 4) / (SR // 4), "same")
@@ -173,14 +200,8 @@ def main():
 
     fx = np.zeros(n)
     by_shot = {s["name"]: s["start"] for s in shots}
-    add(fx, sfx_whoosh(rng), INTRO - 0.4, 0.5)
-    add(fx, sfx_pop(), by_shot["entrada"] + 0.25, 0.6)
-    add(fx, sfx_chime([784, 988, 1175, 1568]), by_shot["entrada"] + 0.3, 0.35)
-    add(fx, sfx_chime([523, 659, 784, 1047, 1319], 0.09, 4), by_shot["luz"] + 0.1, 0.35)
-    add(fx, sfx_chime([1047, 1319, 1568, 2093], 0.05, 5), by_shot["ar"] + 0.1, 0.25)
-    add(fx, sfx_whoosh(rng, 1.0), by_shot["espalha"] + 0.3, 0.4)
-    add(fx, sfx_chime([392, 330, 262], 0.15, 3), by_shot["por_do_sol"] + 0.2, 0.3)
-    add(fx, sfx_chime([523, 659, 784, 1047], 0.08, 4), by_shot["cartao"] + 0.1, 0.4)
+    for shot, offset, nome, gain in ep["sfx"]:
+        add(fx, SFX[nome](rng), by_shot[shot] + offset, gain)
 
     mix = voice * 1.0 + mus * 0.55 + fx
     fl = int(SR * 1.2)
@@ -202,4 +223,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    gerar()

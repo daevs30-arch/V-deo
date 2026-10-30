@@ -1,6 +1,7 @@
 // Renderiza cena.html quadro a quadro no Chromium headless e gera o MP4.
 // Uso: node render.mjs                -> ../por_que_o_ceu_e_azul.mp4
 //      node render.mjs --stills 5,12  -> build/still_5.jpg, build/still_12.jpg
+//      node render.mjs --cena lua.html --build build/lua --out ../a_lua_muda_de_forma.mp4
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');
 import { createServer } from 'node:http';
@@ -24,13 +25,16 @@ const port = server.address().port;
 
 const args = process.argv.slice(2);
 const stills = args.includes('--stills') ? args[args.indexOf('--stills') + 1].split(',').map(Number) : null;
+const opt = (name, def) => args.includes(name) ? args[args.indexOf(name) + 1] : def;
+const cena = opt('--cena', 'cena.html');
+const buildDir = path.join(ROOT, opt('--build', 'build'));
 const out = args.includes('--out') ? args[args.indexOf('--out') + 1] : path.join(ROOT, '..', 'por_que_o_ceu_e_azul.mp4');
 
 const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
 page.on('console', m => console.log('[page]', m.text()));
 page.on('pageerror', e => console.log('[erro]', e.message));
-await page.goto(`http://localhost:${port}/cena.html`);
+await page.goto(`http://localhost:${port}/${cena}`);
 await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
 const total = await page.evaluate(() => window.TOTAL);
 
@@ -44,12 +48,12 @@ if (args.includes('--perfil')) {
 } else if (stills) {
   for (const t of stills) {
     await page.evaluate(t => window.renderAt(t), t);
-    await page.screenshot({ path: path.join(ROOT, 'build', `still_${t}.jpg`), type: 'jpeg', quality: 85 });
+    await page.screenshot({ path: path.join(buildDir, `still_${t}.jpg`), type: 'jpeg', quality: 85 });
   }
 } else {
   const fps = 30, n = Math.round(total * fps);
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-r', String(fps), '-i', '-',
-    '-i', path.join(ROOT, 'build', 'audio.wav'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19',
+    '-i', path.join(buildDir, 'audio.wav'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19',
     '-pix_fmt', 'yuv420p', '-metadata', 'title=Por que o céu é azul? | Faísca Curioso',
     '-metadata', 'artist=@faisca.curioso', '-metadata', 'comment=Curiosidades rápidas de ciência, espaço e do mundo, explicadas pelo Faísca.',
     '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', out],
