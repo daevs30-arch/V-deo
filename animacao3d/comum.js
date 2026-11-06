@@ -57,32 +57,65 @@ export function label(text, { color = '#ffffff', bg = 'rgba(29,27,46,.75)', size
 }
 
 // ------------------------------------------------------------ Faísca
+// Visual de bloco: corpo com cantos retos, olhos quadrados, bigode, chapéu de
+// formatura e varinha de apontar na mão esquerda (o braço que aponta os hologramas).
+function mustacheTex() {
+  return canvasTex(512, 256, (g, w, h) => {
+    g.fillStyle = '#16121c';
+    g.beginPath();
+    g.moveTo(256, 92);
+    g.bezierCurveTo(300, 50, 360, 70, 390, 120);
+    g.bezierCurveTo(415, 160, 470, 160, 488, 112);
+    g.bezierCurveTo(500, 190, 410, 222, 350, 188);
+    g.bezierCurveTo(310, 166, 280, 160, 256, 150);
+    g.bezierCurveTo(232, 160, 202, 166, 162, 188);
+    g.bezierCurveTo(102, 222, 12, 190, 24, 112);
+    g.bezierCurveTo(42, 160, 97, 160, 122, 120);
+    g.bezierCurveTo(152, 70, 212, 50, 256, 92);
+    g.fill();
+  });
+}
+
 export function makeFaisca() {
   const root = new THREE.Group();
   const body = new THREE.Group(); root.add(body);
-  const orange = M('#f08a5d', { roughness: 0.4 });
-  mesh(new RoundedBoxGeometry(0.9, 0.8, 0.72, 6, 0.24), orange, [0, 0, 0], body);
-  const eyeM = M('#1d1b2e', { roughness: 0.2 });
+  const orange = M('#ee8048', { roughness: 0.55 });
+  const BW = 0.92, BH = 0.74, BD = 0.7;
+  mesh(new RoundedBoxGeometry(BW, BH, BD, 2, 0.015), orange, [0, 0, 0], body);
+  const eyeM = M('#16121c', { roughness: 0.3 });
   const eyes = [];
-  for (const sx of [-1, 1]) {
-    const e = mesh(cap(0.055, 0.12), eyeM, [sx * 0.17, 0.14, 0.34], body, false);
-    eyes.push(e);
-    mesh(sph(0.022, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffffff' }), [0.02, 0.05, 0.045], e, false);
-    const ch = mesh(sph(0.07, 16, 10), M('#ff8fa3', { roughness: 0.6 }), [sx * 0.29, 0.0, 0.33], body, false);
-    ch.scale.set(1, 0.6, 0.3);
-  }
-  const mouth = mesh(sph(0.08, 20, 12), M('#5a1e22'), [0, -0.05, 0.35], body, false);
-  mesh(cyl(0.018, 0.018, 0.25, 8), M('#6b4a3a'), [0, 0.5, 0], body);
-  const star = mesh(new THREE.IcosahedronGeometry(0.09, 0), M('#ffd166', { emissive: '#ffb703', emissiveIntensity: 1.2, flatShading: true }), [0, 0.66, 0], body);
+  for (const sx of [-1, 1]) eyes.push(mesh(box(0.085, 0.1, 0.02), eyeM, [sx * 0.21, 0.1, BD / 2 + 0.006], body, false));
+  // boca (abre por trás do bigode) e bigode, que sobe um pouco quando a boca abre
+  const mouth = mesh(box(0.14, 0.06, 0.02), M('#5a1e22'), [0, -0.16, BD / 2 + 0.004], body, false);
+  const mustache = mesh(new THREE.PlaneGeometry(0.56, 0.28), new THREE.MeshStandardMaterial({
+    map: mustacheTex(), transparent: true, roughness: 0.6, alphaTest: 0.3 }), [0, -0.08, BD / 2 + 0.012], body, false);
+  mouth.onBeforeRender = () => { mustache.position.y = -0.08 + (mouth.scale.y - 0.2) * 0.025; };
+  // chapéu de formatura com borla dourada
+  const hat = new THREE.Group(); hat.position.set(0.04, BH / 2, -0.02); hat.rotation.z = -0.08; body.add(hat);
+  const black = M('#1b1922', { roughness: 0.6 });
+  mesh(box(0.34, 0.1, 0.34), black, [0, 0.05, 0], hat);
+  const board = mesh(box(0.62, 0.025, 0.62), black, [0, 0.11, 0], hat);
+  board.rotation.y = Math.PI / 4;
+  const gold = M('#e8b04a', { metalness: 0.4, roughness: 0.35, emissive: '#7a4a00', emissiveIntensity: 0.3 });
+  const star = mesh(box(0.05, 0.03, 0.05), gold, [0, 0.135, 0], hat, false);  // botão do topo
+  const cord = mesh(cyl(0.008, 0.008, 0.42, 6), gold, [0.21, 0.13, 0], hat, false);
+  cord.rotation.z = Math.PI / 2;
+  mesh(cyl(0.008, 0.008, 0.2, 6), gold, [0.42, 0.03, 0], hat, false);
+  mesh(cyl(0.03, 0.022, 0.07, 8), gold, [0.42, -0.08, 0], hat, false);
+  // braços de bloco; a varinha fica na mão esquerda
   const arms = [];
   for (const sx of [-1, 1]) {
-    const piv = new THREE.Group(); piv.position.set(sx * 0.47, 0.0, 0); body.add(piv);
-    mesh(cap(0.075, 0.22), orange, [0, -0.17, 0], piv);
+    const piv = new THREE.Group(); piv.position.set(sx * (BW / 2 + 0.04), 0.0, 0.05); body.add(piv);
+    mesh(box(0.1, 0.34, 0.1), orange, [0, -0.15, 0], piv);
     arms.push(piv);
   }
+  const wand = new THREE.Group(); wand.position.set(0, -0.3, 0.02); arms[0].add(wand);
+  mesh(cyl(0.012, 0.012, 0.62, 8), M('#5b3a26', { roughness: 0.5 }), [0, -0.28, 0], wand, false);
+  mesh(sph(0.03, 12, 10), new THREE.MeshBasicMaterial({ color: '#ffffff' }), [0, -0.6, 0], wand, false);
+  // quatro pernas de bloco (dois pares)
   const legs = [];
-  for (const sx of [-1, 1]) legs.push(mesh(cap(0.08, 0.12), orange, [sx * 0.2, -0.5, 0], body));
-  return { root, body, eyes, mouth, arms, legs, star };
+  for (const x of [-0.3, -0.16, 0.16, 0.3]) legs.push(mesh(box(0.12, 0.22, 0.16), orange, [x, -BH / 2 - 0.11, 0.05], body));
+  return { root, body, eyes, mouth, arms, legs, star, mustache };
 }
 
 // ------------------------------------------------------------ legendas, título e cartão final
