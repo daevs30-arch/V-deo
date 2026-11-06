@@ -203,7 +203,7 @@ def gerar(ep=EPISODIO):
     for shot, offset, nome, gain in ep["sfx"]:
         add(fx, SFX[nome](rng), by_shot[shot] + offset, gain)
 
-    mix = voice * 1.0 + mus * 0.55 + fx
+    mix = voice * 1.0 + mus * ep.get("musica", 0.55) + fx
     fl = int(SR * 1.2)
     mix[-fl:] *= np.linspace(1, 0, fl)
     mix = mix / (np.abs(mix).max() + 1e-9) * 0.9

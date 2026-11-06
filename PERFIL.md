@@ -60,3 +60,20 @@ E comenta: qual curiosidade você quer que o Faísca explique no próximo vídeo
 
 #faiscacurioso #curiosidades #obrigado #10seguidores #rumoaos100 #vocesabia #ciencia
 ```
+
+---
+
+# Descrição do vídeo "Violência em Jaboatão: o que dizem os números"
+
+**Legenda para postar:**
+```
+Violência em Jaboatão: o que dizem os números 📊
+
+Os assassinatos em Jaboatão dos Guararapes cresceram a partir de 2022 e chegaram ao pico em 2023, com 323 vítimas. Mas em 2025 a região de Jaboatão e Moreno teve 277 mortes violentas: 16,6% a menos que em 2024 e o menor número desde 2004.
+
+Isso não quer dizer que o problema acabou: casos graves ainda acontecem, e cada número é uma vida. Em emergência, ligue 190.
+
+Fontes: Secretaria de Defesa Social de Pernambuco (boletim de 24/01/2026) e Blog do Magno, citando dados da SDS-PE.
+
+#jaboatao #jaboataodosguararapes #pernambuco #segurancapublica #dados #informacao #faiscacurioso
+```

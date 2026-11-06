@@ -40,14 +40,19 @@ export function canvasTex(w, h, draw) {
 
 // Plaquinha de texto que sempre olha para a câmera
 export function label(text, { color = '#ffffff', bg = 'rgba(29,27,46,.75)', size = 0.22 } = {}) {
-  const tex = canvasTex(512, 160, (g, w, h) => {
-    g.font = '800 84px "Inter Display", Inter, sans-serif';
-    const tw = g.measureText(text).width + 70;
+  const font = '800 84px "Inter Display", Inter, sans-serif';
+  const meas = document.createElement('canvas').getContext('2d');
+  meas.font = font;
+  const tw = meas.measureText(text).width + 70;
+  const cw = Math.max(512, Math.ceil(tw + 20));
+  const tex = canvasTex(cw, 160, (g, w, h) => {
+    g.font = font;
     g.fillStyle = bg; g.beginPath(); g.roundRect((w - tw) / 2, 20, tw, 120, 60); g.fill();
     g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w / 2, 84);
   });
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-  s.scale.set(size * 3.2, size, 1);
+  s.userData.aspect = cw / 160;  // largura/altura, para escalar sem distorcer
+  s.scale.set(size * s.userData.aspect, size, 1);
   return s;
 }
 
