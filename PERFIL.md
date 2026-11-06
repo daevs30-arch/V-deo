@@ -75,5 +75,5 @@ Isso não quer dizer que o problema acabou: casos graves ainda acontecem, e cada
 
 Fontes: Secretaria de Defesa Social de Pernambuco (boletim de 24/01/2026) e Blog do Magno, citando dados da SDS-PE.
 
-#jaboatao #jaboataodosguararapes #pernambuco #segurancapublica #dados #informacao #faiscacurioso
+#jaboatao #jaboataodosguararapes #pernambuco #segurancapublica #dados #informacao
 ```

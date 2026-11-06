@@ -33,7 +33,9 @@
     text-align: center; line-height: 1.35; }
   #card .who { margin-top: 60px; display: flex; align-items: center; gap: 22px; font-weight: 900;
     font-size: 52px; color: #fff; }
-  #card .who img { width: 120px; height: 120px; border-radius: 50%; border: 6px solid #fff; }
+  #card .who img { width: 220px; height: 220px; border-radius: 50%; border: 8px solid #fff; }
+  #who { display: none; }
+  #sub { padding-top: 40px !important; }
   #card .btn { margin-top: 60px; background: #0095f6; color: #fff; font-weight: 900; font-size: 64px;
     padding: 24px 66px; border-radius: 26px; border: 8px solid #1d1b2e; }
   #prog { position: absolute; left: 60px; right: 60px; top: 70px; height: 14px; border-radius: 7px;
@@ -71,10 +73,9 @@
   <div id="fonte"></div>
   <div id="sub"><div id="who"></div><div id="txt"></div></div>
   <div id="card"><div class="c1 stroke">Fique informado</div>
-    <div class="c2 stroke">Siga para mais<br>vídeos com o Faísca</div>
     <div class="c3">Fontes: Secretaria de Defesa Social de Pernambuco (boletim de 24/01/2026)
       e Blog do Magno, citando dados da SDS-PE.</div>
-    <div class="who"><img src="perfil.png">@faisca.curioso</div>
+    <div class="who"><img src="logo_jaboatao.png"></div>
     <div class="btn">+ SEGUIR</div></div>
   <div id="flash"></div>
   <div id="prog"><div></div></div>
@@ -264,7 +265,7 @@ function setCamera(shot, t) {
 }
 
 const overlay = makeOverlay(TL, {
-  names: { faisca: 'Faísca' }, colors: { faisca: '#e07a52' },
+  names: { faisca: '' }, colors: { faisca: '#e07a52' },
   keyClass: (w, ln) => /^(323|2023)/.test(w) ? 'n' : /^(277|2025|menos|virada)/.test(w) && ln.shot === 'grafico' ? 'g' : '',
 });
 const FONTES = [

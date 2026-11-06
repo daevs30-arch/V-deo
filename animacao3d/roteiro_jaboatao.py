@@ -1,5 +1,6 @@
-"""Episódio 3: "Violência em Jaboatão: o que dizem os números" — o Faísca
-apresenta sozinho, sobre uma maquete da cidade.
+"""Episódio 3: "Violência em Jaboatão: o que dizem os números" — o mascote
+apresenta sozinho, sobre uma maquete da cidade. Sem o nome "Faísca" na tela
+nem na fala; o cartão final usa a logomarca logo_jaboatao.png.
 
 Números (conferidos em novembro de 2026):
 - Alta de 2022 a 2023, com pico de 323 vítimas de CVLI em Jaboatão em 2023:
@@ -21,8 +22,8 @@ ROTEIRO = [
     # gancho: os primeiros ~10 segundos precisam prender quem está rolando o feed
     ("faisca", "Jaboatão chegou a 323 assassinatos em um ano. E agora: a violência está "
                "subindo ou caindo? Os números respondem.", "gancho", 0.0),
-    ("faisca", "Oi, eu sou o Faísca! Vem comigo entender os dados de Jaboatão dos Guararapes, "
-               "aqui em Pernambuco.", "apresentacao", 0.9),
+    ("faisca", "Vem comigo entender os dados de Jaboatão dos Guararapes, aqui em Pernambuco.",
+     "apresentacao", 0.9),
     ("faisca", "Segundo a Secretaria de Defesa Social, os assassinatos na cidade cresceram "
                "a partir de 2022 e chegaram ao pico em 2023, com 323 vítimas.", "alta", 0.8),
     ("faisca", "Mas os dados mais recentes mostram uma virada. Em 2025, a região de Jaboatão "

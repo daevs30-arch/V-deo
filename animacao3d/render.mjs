@@ -61,10 +61,14 @@ if (args.includes('--imagem')) {
   }
 } else {
   const fps = 30, n = Math.round(total * fps);
+  // --sem-assinatura: título sem "Faísca Curioso" e sem autor/descrição do canal
+  const titulo = opt('--titulo', 'Por que o céu é azul?');
+  const metadados = args.includes('--sem-assinatura') ? ['-metadata', `title=${titulo}`] : [
+    '-metadata', `title=${titulo} | Faísca Curioso`, '-metadata', 'artist=@faisca.curioso',
+    '-metadata', 'comment=Curiosidades rápidas de ciência, espaço e do mundo, explicadas pelo Faísca.'];
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-r', String(fps), '-i', '-',
     '-i', path.join(buildDir, 'audio.wav'), '-c:v', 'libx264', '-preset', 'medium', '-crf', '19',
-    '-pix_fmt', 'yuv420p', '-metadata', `title=${opt('--titulo', 'Por que o céu é azul?')} | Faísca Curioso`,
-    '-metadata', 'artist=@faisca.curioso', '-metadata', 'comment=Curiosidades rápidas de ciência, espaço e do mundo, explicadas pelo Faísca.',
+    '-pix_fmt', 'yuv420p', ...metadados,
     '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', out],
     { stdio: ['pipe', 'inherit', 'inherit'] });
   const t0 = Date.now();
