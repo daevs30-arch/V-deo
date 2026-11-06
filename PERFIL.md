@@ -65,15 +65,22 @@ E comenta: qual curiosidade você quer que o Faísca explique no próximo vídeo
 
 # Descrição do vídeo "Violência em Jaboatão: o que dizem os números"
 
+**Capa:** `capa_violencia_em_jaboatao.png` (1080×1920; o texto principal fica no centro, para caber no recorte da grade do perfil)
+
 **Legenda para postar:**
 ```
-Violência em Jaboatão: o que dizem os números 📊
+Violência em Jaboatão: está subindo ou caindo? 📊
 
-Os assassinatos em Jaboatão dos Guararapes cresceram a partir de 2022 e chegaram ao pico em 2023, com 323 vítimas. Mas em 2025 a região de Jaboatão e Moreno teve 277 mortes violentas: 16,6% a menos que em 2024 e o menor número desde 2004.
+Jaboatão dos Guararapes chegou a 323 vítimas de crimes violentos em 2023, o pico da série recente. Mas os dados mais novos mostram uma virada: em 2025, a região de Jaboatão e Moreno teve 277 mortes violentas, 16,6% a menos que em 2024 e o menor número desde 2004.
 
-Isso não quer dizer que o problema acabou: casos graves ainda acontecem, e cada número é uma vida. Em emergência, ligue 190.
+Isso não quer dizer que o problema acabou. Casos graves ainda acontecem, e cada número é uma vida. Informação de qualidade ajuda a cobrar e acompanhar as políticas de segurança.
 
-Fontes: Secretaria de Defesa Social de Pernambuco (boletim de 24/01/2026) e Blog do Magno, citando dados da SDS-PE.
+🚨 Em caso de emergência, ligue 190.
+
+📌 Fontes: Secretaria de Defesa Social de Pernambuco (boletim de 24/01/2026) e Blog do Magno, citando dados da SDS-PE.
+
+Compartilhe com quem mora em Jaboatão 👇
 
 #jaboatao #jaboataodosguararapes #pernambuco #segurancapublica #dados #informacao
 ```
+

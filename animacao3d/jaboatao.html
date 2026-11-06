@@ -56,6 +56,24 @@
   #vig { position: absolute; inset: 0; opacity: 0;
     background: radial-gradient(circle at 50% 40%, transparent 35%, rgba(214, 40, 57, .65) 100%); }
   #handle img { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #fff; }
+  /* capa do vídeo (?capa): texto principal no centro, para caber no recorte da grade do perfil */
+  #capa { position: absolute; inset: 0; display: none; }
+  body.capa #capa { display: block; }
+  body.capa #ov > :not(#capa) { display: none !important; }
+  #capa .grad { position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,12,40,.85) 0, rgba(10,12,40,.15) 42%, rgba(10,12,40,0) 60%, rgba(10,12,40,.9) 88%); }
+  #capa .t1 { position: absolute; top: 330px; width: 100%; text-align: center; font-weight: 900;
+    font-size: 118px; line-height: 1; color: #fff; }
+  #capa .t2 { position: absolute; top: 450px; width: 100%; text-align: center; font-weight: 900;
+    font-size: 168px; line-height: 1; color: #ffd60a; }
+  #capa .q { position: absolute; top: 660px; width: 100%; display: flex; justify-content: center;
+    align-items: center; gap: 16px; font-weight: 900; font-size: 62px; color: #fff; white-space: nowrap; }
+  #capa .q span { padding: 10px 26px; border-radius: 24px; border: 8px solid #1d1b2e; }
+  #capa .up { background: #e63946; transform: rotate(-4deg); }
+  #capa .dn { background: #1f9d55; transform: rotate(4deg); }
+  #capa .resp { position: absolute; top: 1300px; width: 100%; text-align: center; font-weight: 900;
+    font-size: 62px; color: #fff; }
+  #capa .logo { position: absolute; top: 1400px; left: 50%; width: 760px; transform: translateX(-50%); }
 </style>
 <script type="importmap">
 { "imports": {
@@ -66,6 +84,11 @@
 </head>
 <body>
 <div id="ov">
+  <div id="capa"><div class="grad"></div>
+    <div class="t1 stroke">VIOLÊNCIA EM</div><div class="t2 stroke">JABOATÃO</div>
+    <div class="q"><span class="up">▲ SUBINDO</span><span class="stroke" style="border:none;padding:0">ou</span><span class="dn">CAINDO ▼</span></div>
+    <div class="resp stroke">Os números respondem</div>
+    <img class="logo" src="logo_jaboatao.png"></div>
   <div id="title"><span class="a stroke">VIOLÊNCIA EM<br>JABOATÃO</span><span class="b stroke">o que dizem os números</span></div>
   <div id="vig"></div>
   <div id="hook"><div id="num" class="stroke">0</div><div id="numcap" class="stroke">assassinatos em um ano</div>
@@ -406,6 +429,15 @@ function gancho(t) {
 
 window.renderAt = t => { animate(t); renderer.render(scene, camera); return true; };
 window.TOTAL = TL.total;
+// capa: cena da apresentação, mascote apontando a varinha para a cidade
+if (location.search.includes('capa')) {
+  document.body.classList.add('capa');
+  animate(S.apresentacao.start + 3.6);
+  fa.arms[0].rotation.z = -1.7; fa.arms[1].rotation.z = 0.35;
+  fa.mouth.scale.set(1.1, 0.7, 0.45); fa.eyes.forEach(e => { e.scale.y = 1; });
+  camera.position.set(0.4, 2.0, 5.6); camera.lookAt(0.3, 1.3, 0.4);
+  renderer.render(scene, camera);
+}
 window.ready = true;
 </script>
 </body>
