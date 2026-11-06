@@ -133,6 +133,14 @@ def sfx_whoosh(rng, dur=0.7):
     return ns * np.sin(np.linspace(0, np.pi, n)) ** 2
 
 
+def sfx_impacto(rng):
+    """Batida grave para o gancho (número aparecendo na tela)."""
+    x = np.arange(int(SR * 0.9)) / SR
+    boom = np.sin(2 * np.pi * (38 + 90 * np.exp(-x * 18)) * x) * np.exp(-x * 4.5)
+    hit = np.convolve(rng.standard_normal(len(x)), np.ones(8) / 8, "same") * np.exp(-x * 30) * 0.5
+    return boom + hit
+
+
 def sfx_pop():
     x = np.arange(int(SR * 0.15)) / SR
     return np.sin(2 * np.pi * (300 + 900 * np.exp(-x * 40)) * x) * np.exp(-x * 25)
@@ -148,6 +156,7 @@ SFX = {
     "cintilar": lambda rng: sfx_chime([1047, 1319, 1568, 2093], 0.05, 5),
     "descida": lambda rng: sfx_chime([392, 330, 262], 0.15, 3),
     "final": lambda rng: sfx_chime([523, 659, 784, 1047], 0.08, 4),
+    "impacto": lambda rng: sfx_impacto(rng),
 }
 
 EPISODIO = {

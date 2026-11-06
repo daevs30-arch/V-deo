@@ -18,8 +18,11 @@ import roteiro
 BASE = os.path.dirname(os.path.abspath(__file__))
 
 ROTEIRO = [
-    ("faisca", "Oi, eu sou o Faísca! Hoje o assunto é sério: a violência em Jaboatão dos "
-               "Guararapes, aqui em Pernambuco.", "apresentacao", 1.4),
+    # gancho: os primeiros ~10 segundos precisam prender quem está rolando o feed
+    ("faisca", "Jaboatão chegou a 323 assassinatos em um ano. E agora: a violência está "
+               "subindo ou caindo? Os números respondem.", "gancho", 0.0),
+    ("faisca", "Oi, eu sou o Faísca! Vem comigo entender os dados de Jaboatão dos Guararapes, "
+               "aqui em Pernambuco.", "apresentacao", 0.9),
     ("faisca", "Segundo a Secretaria de Defesa Social, os assassinatos na cidade cresceram "
                "a partir de 2022 e chegaram ao pico em 2023, com 323 vítimas.", "alta", 0.8),
     ("faisca", "Mas os dados mais recentes mostram uma virada. Em 2025, a região de Jaboatão "
@@ -36,12 +39,14 @@ EPISODIO = {
     "voices": {"faisca": roteiro.VOICES["faisca"]},
     "vozes": os.path.join(BASE, "vozes_jaboatao"),
     "build": os.path.join(BASE, "build", "jaboatao"),
-    "intro": 4.5,
+    "intro": 0.4,   # sem abertura lenta: o gancho começa quase de imediato
     "outro": 4.0,
     "musica": 0.3,  # trilha mais baixa: o tema é sério
-    "sfx": [("apresentacao", -0.4, "whoosh", 0.4), ("apresentacao", 0.3, "pop", 0.4),
-            ("alta", 0.2, "subida", 0.25), ("grafico", 0.2, "whoosh_longo", 0.3),
-            ("final", 0.3, "brilho", 0.25)],
+    # o gancho tem cortes de câmera em 2,8 s e 5,6 s (ver jaboatao.html)
+    "sfx": [("gancho", 0.1, "impacto", 0.7), ("gancho", 2.8, "whoosh", 0.45),
+            ("gancho", 5.6, "whoosh", 0.45), ("apresentacao", 0.0, "impacto", 0.4),
+            ("apresentacao", 1.0, "pop", 0.4), ("alta", 0.2, "subida", 0.25),
+            ("grafico", 0.2, "whoosh_longo", 0.3), ("final", 0.3, "brilho", 0.25)],
 }
 
 if __name__ == "__main__":
