@@ -48,10 +48,11 @@
     font-size: 190px; line-height: 1; color: #ffd60a; }
   #capa .t1 { position: absolute; top: 500px; width: 100%; text-align: center; font-weight: 900;
     font-size: 96px; line-height: 1.02; color: #fff; }
-  #capa .temas { position: absolute; top: 1270px; width: 100%; display: flex; justify-content: center; gap: 16px;
+  #capa .temas { position: absolute; top: 1260px; width: 100%; display: flex; justify-content: center; gap: 16px;
     font-weight: 900; font-size: 44px; color: #fff; white-space: nowrap; }
   #capa .temas span { padding: 10px 22px; border-radius: 20px; border: 6px solid #1d1b2e; }
-  #capa .logo { position: absolute; top: 1390px; left: 50%; width: 760px; transform: translateX(-50%); }
+  #capa .t2 { top: 1350px; }
+  #capa .logo { position: absolute; top: 1450px; left: 50%; width: 760px; transform: translateX(-50%); }
 </style>
 <script type="importmap">
 { "imports": {
@@ -65,7 +66,8 @@
   <div id="capa"><div class="grad"></div>
     <div class="t0 stroke">12 ANOS</div>
     <div class="t1 stroke">PRESTAÇÃO<br>DE CONTAS</div>
-    <div class="temas"><span style="background:#1f4fa8">Segurança</span><span style="background:#2f8bff">Inclusão</span><span style="background:#ff8c42">Animais</span></div>
+    <div class="temas"><span style="background:#1f4fa8">Segurança</span><span style="background:#6a2c91">Mulheres</span><span style="background:#2e9e4f">Educação</span></div>
+    <div class="temas t2"><span style="background:#2f8bff">Inclusão</span><span style="background:#ff8c42">Animais</span><span style="background:#e63946">Família</span></div>
     <img class="logo" src="logo_jaboatao.png"></div>
   <div id="hook"><div id="num">12 ANOS</div><br><div class="chip">3 MANDATOS</div></div>
   <div id="title"><span class="a stroke">PRESTAÇÃO<br>DE CONTAS</span><img src="logo_jaboatao.png"></div>
@@ -194,7 +196,7 @@ const topics = {};
 function topic(name, build, labels) {
   const g = new THREE.Group(); g.position.copy(HC); scene.add(g);
   build(g);
-  const ls = labels.map(([text, opt, y]) => { const l = label(text, opt); l.position.set(0, y, 0.35); g.add(l); return l; });
+  const ls = labels.map(([text, opt, y]) => { const l = label(text, opt); l.position.set(0.15, y, 0.35); g.add(l); return l; });
   topics[name] = { g, ls };
 }
 // trajetória: três colunas de luz (2014, 2018, 2022)
@@ -216,7 +218,7 @@ topic('seguranca', g => {
   const sh = extr(s, 0.12, '#1f4fa8'); sh.position.z = -0.06; g.add(sh);
   const st = extr(starShape(0.22, 0.09), 0.06, '#ffd166', { metalness: 0.5, emissiveIntensity: 0.4 }); st.position.set(0, 0.02, 0.1); g.add(st);
   topics._shield = sh;
-}, [['Presidente da Comissão', { color: '#ffffff', bg: '#1f4fa8', size: 0.2 }, 0.98], ['de Segurança Pública', { color: '#ffffff', bg: '#1f4fa8', size: 0.2 }, 0.76]]);
+}, [['Presidente da Comissão de Segurança', { color: '#ffffff', bg: '#1f4fa8', size: 0.17 }, 0.98], ['71 projetos aprovados em 2025', { color: '#1d1b2e', bg: '#ffd166', size: 0.19 }, 0.76]]);
 // inclusão: peça de quebra-cabeça + prato
 function puzzleShape(sz = 0.5) {
   const h = sz / 2, k = sz * 0.17, s = new THREE.Shape();
@@ -250,6 +252,53 @@ topic('animais', g => {
   heart.bezierCurveTo(-0.16, 0.04, -0.12, 0.16, 0, 0.09); heart.bezierCurveTo(0.12, 0.16, 0.16, 0.04, 0, -0.08);
   const hm = extr(heart, 0.03, '#ff4d6d'); hm.position.set(0, -0.12, 0.12); g.add(hm);
 }, [['Lei nº 19.021/2025', { color: '#1d1b2e', bg: '#ffffff', size: 0.22 }, 0.98], ['Adestramento sem violência', { color: '#ffffff', bg: '#ff8c42', size: 0.2 }, 0.74]]);
+// mulheres: cartaz com os números de denúncia
+topic('mulheres', g => {
+  const tex = canvasTex(400, 520, (c, w, h) => {
+    c.fillStyle = '#6a2c91'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#ffffff'; c.textAlign = 'center';
+    c.font = '900 40px "Inter Display", Inter, sans-serif';
+    c.fillText('VIOLÊNCIA CONTRA', w / 2, 80); c.fillText('A MULHER', w / 2, 128);
+    c.font = '800 34px "Inter Display", Inter, sans-serif'; c.fillText('DENUNCIE', w / 2, 210);
+    c.fillStyle = '#ffd166'; c.font = '900 120px "Inter Display", Inter, sans-serif';
+    c.fillText('190', w / 2, 340); c.fillText('180', w / 2, 470);
+  });
+  mesh(box(0.62, 0.8, 0.04), M('#4a1d66'), [0, 0.02, -0.03], g, false);
+  mesh(new THREE.PlaneGeometry(0.56, 0.74), new THREE.MeshStandardMaterial({ map: tex, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.35 }), [0, 0.02, 0.0], g, false);
+  topics._poster = g;
+  g.children.forEach(c => c.scale.multiplyScalar(1.3));
+}, [['Lei nº 16.659/2019', { color: '#1d1b2e', bg: '#ffffff', size: 0.22 }, 0.98], ['Cartazes em bares e restaurantes', { color: '#ffffff', bg: '#6a2c91', size: 0.18 }, 0.74]]);
+// educação: medalha sobre livros
+topic('educacao', g => {
+  ['#e63946', '#2f8bff', '#2e9e4f'].forEach((c, i) => {
+    const b = mesh(box(0.56 - i * 0.04, 0.09, 0.38), M(c, { roughness: 0.6 }), [0, -0.4 + i * 0.095, 0], g, false);
+    b.rotation.y = (i - 1) * 0.12;
+  });
+  const medal = new THREE.Group(); medal.position.set(0, 0.12, 0.02); g.add(medal);
+  mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 48), M('#f2b632', { metalness: 0.6, roughness: 0.3, emissive: '#7a4a00', emissiveIntensity: 0.3 }), [0, 0, 0], medal, false).rotation.x = Math.PI / 2;
+  const st = extr(starShape(0.15, 0.065), 0.03, '#fff1b0', { metalness: 0.4 }); st.position.set(0, 0, 0.03); medal.add(st);
+  for (const sx of [-1, 1]) {
+    const r = mesh(box(0.08, 0.3, 0.02), M(sx < 0 ? '#2f8bff' : '#e63946'), [sx * 0.07, 0.36, -0.02], medal, false); r.rotation.z = sx * 0.25;
+  }
+  topics._medal = medal;
+}, [['Lei nº 18.999/2025', { color: '#1d1b2e', bg: '#ffffff', size: 0.22 }, 0.98], ['Incentivo ao desempenho escolar', { color: '#ffffff', bg: '#2e9e4f', size: 0.18 }, 0.74]]);
+// família: calendário com coração
+topic('familia', g => {
+  const tex = canvasTex(400, 440, (c, w, h) => {
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#e63946'; c.fillRect(0, 0, w, 110);
+    c.fillStyle = '#ffffff'; c.textAlign = 'center'; c.font = '900 52px "Inter Display", Inter, sans-serif';
+    c.fillText('CALENDÁRIO', w / 2, 74);
+    c.fillStyle = '#1d1b2e'; c.font = '900 64px "Inter Display", Inter, sans-serif';
+    c.fillText('PAIS', w / 2, 215); c.fillText('MÃES', w / 2, 395);
+    c.fillStyle = '#e63946'; c.font = '900 70px "Inter Display", Inter, sans-serif'; c.fillText('♥', w / 2, 305);
+  });
+  mesh(box(0.6, 0.66, 0.04), M('#d9d9e3'), [0, 0, -0.03], g, false);
+  mesh(new THREE.PlaneGeometry(0.56, 0.62), new THREE.MeshStandardMaterial({ map: tex, emissive: '#ffffff', emissiveMap: tex, emissiveIntensity: 0.3 }), [0, 0, 0], g, false);
+  for (const x of [-0.16, 0.16]) mesh(cyl(0.02, 0.02, 0.12, 8), M('#8a8f9c', { metalness: 0.6 }), [x, 0.34, 0.01], g, false);
+  topics._cal = g;
+  g.children.forEach(c => c.scale.multiplyScalar(1.3));
+}, [['Dia dos Pais e Dia das Mães', { color: '#ffffff', bg: '#e63946', size: 0.19 }, 0.98], ['no calendário oficial de PE', { color: '#1d1b2e', bg: '#ffffff', size: 0.19 }, 0.74]]);
 // final: coração com as cores de Pernambuco
 topic('final', g => {
   const hs = new THREE.Shape(); hs.moveTo(0, -0.42);
@@ -258,7 +307,7 @@ topic('final', g => {
   const st = extr(starShape(0.14, 0.06), 0.05, '#ffd60a', { metalness: 0.4 }); st.position.set(0, 0.12, 0.12); g.add(st);
   topics._heart = hm;
 }, [['Por Pernambuco', { color: '#ffffff', bg: '#2a63b8', size: 0.26 }, 0.75]]);
-const TOPIC_SHOTS = ['trajetoria', 'seguranca', 'inclusao', 'frente', 'animais', 'final'];
+const TOPIC_SHOTS = ['trajetoria', 'seguranca', 'mulheres', 'inclusao', 'frente', 'educacao', 'animais', 'familia', 'final'];
 
 // ------------------------------------------------------------ câmera
 const CAM = {
@@ -266,6 +315,9 @@ const CAM = {
   seguranca: [[-0.1, 1.6, 5.6], [-0.15, 1.05, 0.7], [0.15, 1.6, 5.2], [-0.1, 1.1, 0.7]],
   inclusao: [[0.3, 1.7, 5.6], [-0.15, 1.05, 0.7], [0.1, 1.65, 5.2], [-0.1, 1.1, 0.7]],
   frente: [[-0.2, 1.6, 5.5], [-0.15, 1.05, 0.7], [0.1, 1.6, 5.1], [-0.1, 1.1, 0.7]],
+  mulheres: [[0.2, 1.65, 5.6], [-0.15, 1.05, 0.7], [-0.05, 1.6, 5.2], [-0.1, 1.1, 0.7]],
+  educacao: [[-0.15, 1.65, 5.5], [-0.15, 1.05, 0.7], [0.15, 1.6, 5.1], [-0.1, 1.1, 0.7]],
+  familia: [[0.2, 1.6, 5.5], [-0.15, 1.05, 0.7], [0.0, 1.6, 5.1], [-0.1, 1.1, 0.7]],
   animais: [[0.25, 1.65, 5.5], [-0.15, 1.05, 0.7], [0.05, 1.6, 5.1], [-0.1, 1.1, 0.7]],
   final: [[0.0, 1.8, 5.4], [0, 1.0, 0.4], [0.2, 2.2, 6.4], [0, 1.0, 0.0]],
   cartao: [[0.2, 2.2, 6.4], [0, 1.0, 0.0], [0.3, 2.6, 7.2], [0, 0.9, 0.0]],
@@ -299,6 +351,9 @@ const overlay = makeOverlay(TL, {
 const FONTES = [
   [S.inclusao, '<b>Lei Estadual nº 18.689/2024</b>: merenda escolar adaptada para crianças com seletividade alimentar.'],
   [S.animais, '<b>Lei Estadual nº 19.021/2025</b>: proíbe o adestramento de animais com práticas violentas.'],
+  [S.mulheres, '<b>Lei Estadual nº 16.659/2019</b>: cartazes com os números 190 e 180 em bares, restaurantes e casas de espetáculo.'],
+  [S.educacao, '<b>Lei Estadual nº 18.999/2025</b>: programa estadual de incentivo ao desempenho escolar.'],
+  [S.seguranca, '<b>Comissão de Segurança Pública da Alepe</b>: 71 projetos de lei aprovados em 2025.'],
 ];
 const $ = id => document.getElementById(id);
 function fonte(t) {
@@ -395,6 +450,9 @@ function animate(t) {
   topics.animais.g.rotation.y = Math.sin(t * 1.3) * 0.3;
   toes.forEach((to, i) => { to.position.z = Math.max(0, Math.sin(t * 6 - i * 0.8)) * 0.03; });
   topics.final.g.rotation.y = Math.sin(t * 1.0) * 0.3;
+  topics.mulheres.g.rotation.y = Math.sin(t * 1.2) * 0.25;
+  topics.educacao.g.rotation.y = Math.sin(t * 1.1) * 0.3; topics._medal.rotation.z = Math.sin(t * 2.2) * 0.12;
+  topics.familia.g.rotation.y = Math.sin(t * 1.0) * 0.28;
   topics._heart.scale.setScalar(1 + 0.06 * Math.max(0, Math.sin(t * 5)));
 
   overlay(t);
