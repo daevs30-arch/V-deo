@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const TYPES = { '.png': 'image/png', '.mjs': 'text/javascript', '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
+const TYPES = { '.jpg': 'image/jpeg', '.png': 'image/png', '.mjs': 'text/javascript', '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
 const server = createServer(async (req, res) => {
   try {
     const p = path.join(ROOT, decodeURIComponent(new URL(req.url, 'http://x').pathname));
