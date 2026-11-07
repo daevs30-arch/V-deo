@@ -326,7 +326,9 @@ topic('final', g => {
   const st = extr(starShape(0.14, 0.06), 0.05, '#ffd60a', { metalness: 0.4 }); st.position.set(0, 0.12, 0.12); g.add(st);
   topics._heart = hm;
 }, [['Por Pernambuco', { color: '#ffffff', bg: '#2a63b8', size: 0.26 }, 0.75]]);
-const TOPIC_SHOTS = ['trajetoria', 'seguranca', 'mulheres', 'inclusao', 'frente', 'educacao', 'religiao', 'animais', 'familia', 'final'];
+// só os temas que têm plano no roteiro; os outros ficam escondidos
+const TOPIC_SHOTS = ['trajetoria', 'seguranca', 'mulheres', 'inclusao', 'frente', 'educacao', 'religiao', 'animais', 'familia', 'final'].filter(n => S[n]);
+Object.keys(topics).filter(n => !n.startsWith('_') && !TOPIC_SHOTS.includes(n)).forEach(n => { topics[n].g.visible = false; topics[n].off = true; });
 
 // ------------------------------------------------------------ câmera
 const CAM = {
@@ -465,7 +467,7 @@ function animate(t) {
   });
   if (topics._shield) topics.seguranca.g.rotation.y = Math.sin(t * 1.2) * 0.35;
   topics.inclusao.g.rotation.y = Math.sin(t * 1.3) * 0.3; topics._pz.rotation.z = Math.sin(t * 2) * 0.08;
-  const fk = easeOut((t - S.frente.start - 0.4) / 1.2);
+  const fk = S.frente ? easeOut((t - S.frente.start - 0.4) / 1.2) : 1;
   pieces.forEach(p => { p.pz.position.lerpVectors(p.from, p.to, fk); p.pz.rotation.z = p.rot * (1 - fk); });
   topics.frente.g.rotation.y = Math.sin(t * 1.1) * 0.25;
   topics.animais.g.rotation.y = Math.sin(t * 1.3) * 0.3;
