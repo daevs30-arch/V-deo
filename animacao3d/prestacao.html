@@ -1,0 +1,394 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Prestação de contas: Joel da Harpa</title>
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #000;
+    font-family: 'Inter Display', 'Inter', sans-serif; }
+  canvas { display: block; }
+  #ov { position: absolute; inset: 0; pointer-events: none; }
+  .stroke { paint-order: stroke fill; -webkit-text-stroke: 16px #1d1b2e; }
+  #title { position: absolute; top: 250px; width: 100%; text-align: center; opacity: 0; }
+  #title .a { font-weight: 900; font-size: 104px; color: #fff; display: block; line-height: 1.05; }
+  #title img { width: 760px; margin-top: 36px; }
+  #sub { position: absolute; left: 60px; right: 60px; bottom: 230px; background: #fff;
+    border: 8px solid #1d1b2e; border-radius: 44px; padding: 40px 44px 40px;
+    box-shadow: 0 14px 0 rgba(29, 27, 46, .35); transform-origin: 50% 100%; }
+  #who { display: none; }
+  #txt { font-weight: 800; font-size: 52px; line-height: 1.28; color: #1d1b2e; }
+  #txt .n { color: #1f6fd6; }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; }
+  #hook { position: absolute; top: 290px; width: 100%; text-align: center; }
+  #num { white-space: nowrap; font-weight: 900; font-size: 176px; line-height: 1; color: #ffd60a; display: inline-block;
+    paint-order: stroke fill; -webkit-text-stroke: 22px #1d1b2e; }
+  #hook .chip { display: inline-block; margin-top: 30px; padding: 12px 34px; border-radius: 26px;
+    border: 7px solid #1d1b2e; background: #1f6fd6; color: #fff; font-weight: 900; font-size: 70px; }
+  #fonte { position: absolute; left: 60px; right: 60px; top: 110px; padding: 16px 26px; border-radius: 22px;
+    background: rgba(10, 14, 40, .72); color: #dfe7ff; font-weight: 700; font-size: 30px; line-height: 1.3; opacity: 0; }
+  #fonte b { color: #fff; }
+  #card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; opacity: 0; background: rgba(10, 12, 40, .86); }
+  #card .c1 { font-weight: 900; font-size: 96px; color: #ffd60a; text-align: center; line-height: 1.05; }
+  #card .c3 { margin-top: 40px; max-width: 900px; font-weight: 800; font-size: 48px; color: #fff;
+    text-align: center; line-height: 1.3; }
+  #card img { width: 880px; margin-top: 70px; }
+  #card .btn { margin-top: 60px; background: #0095f6; color: #fff; font-weight: 900; font-size: 64px;
+    padding: 24px 66px; border-radius: 26px; border: 8px solid #1d1b2e; }
+  #prog { position: absolute; left: 60px; right: 60px; top: 70px; height: 14px; border-radius: 7px;
+    background: rgba(255, 255, 255, .35); overflow: hidden; }
+  #prog div { height: 100%; background: #fff; width: 0; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="ov">
+  <div id="hook"><div id="num">12 ANOS</div><br><div class="chip">3 MANDATOS</div></div>
+  <div id="title"><span class="a stroke">PRESTAÇÃO<br>DE CONTAS</span><img src="logo_jaboatao.png"></div>
+  <div id="fonte"></div>
+  <div id="sub"><div id="who"></div><div id="txt"></div></div>
+  <div id="card"><div class="c1 stroke">Obrigado,<br>Pernambuco!</div>
+    <div class="c3">Mesmo sem mandato, seguimos trabalhando por Pernambuco.</div>
+    <img src="logo_jaboatao.png">
+    <div class="btn">+ SEGUIR</div></div>
+  <div id="flash"></div>
+  <div id="prog"><div></div></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { clamp, lerp, smooth, easeOut, easeBack, rng, M, mesh, box, sph, cyl, glow, canvasTex,
+  label, makeFaisca, makeOverlay } from './comum.js';
+
+const TL = await (await fetch('build/prestacao/timeline.json')).json();
+const W = 1080, H = 1920;
+const S = Object.fromEntries(TL.shots.map(s => [s.name, s]));
+const L = TL.lines;
+const rand = rng(2014);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = canvasTex(512, 1024, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h);
+  gr.addColorStop(0, '#2f7fd8'); gr.addColorStop(0.55, '#8cc8f5'); gr.addColorStop(1, '#d9efff');
+  g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(255,255,255,.75)';
+  for (const [x, y, r] of [[90, 220, 40], [130, 210, 52], [175, 225, 38], [360, 330, 34], [400, 318, 46], [440, 334, 32]]) {
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+});
+const camera = new THREE.PerspectiveCamera(50, W / H, 0.05, 200);
+scene.add(new THREE.HemisphereLight('#eaf4ff', '#7a6a55', 1.2));
+const key = new THREE.DirectionalLight('#fff3dc', 2.4); key.position.set(4, 8, 6);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 4; key.shadow.bias = -0.0005;
+Object.assign(key.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 25 });
+scene.add(key);
+
+// ------------------------------------------------------------ praça e Assembleia
+mesh(new THREE.CircleGeometry(40, 64), M('#b9d99a', { roughness: 1 }), [0, -0.6, 0], scene, false).rotation.x = -Math.PI / 2;
+const plaza = new THREE.Group(); scene.add(plaza);
+const R = 2.7;
+mesh(cyl(R + 0.1, R + 0.18, 0.6, 96), M('#efe6d2', { roughness: 0.8 }), [0, -0.3, 0], plaza);
+const pave = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#e9dcc2'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(150,120,90,.35)'; g.lineWidth = 3;
+  for (let i = 0; i < w; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); }
+});
+pave.wrapS = pave.wrapT = THREE.RepeatWrapping; pave.repeat.set(4, 4);
+mesh(new THREE.CircleGeometry(R, 96), M('#ffffff', { map: pave, roughness: 0.9 }), [0, 0.004, 0], plaza, false).rotation.x = -Math.PI / 2;
+// jardins laterais
+for (const sx of [-1, 1]) {
+  mesh(box(0.9, 0.08, 1.4), M('#6fb35e', { roughness: 1 }), [sx * 1.7, 0.04, 0.6], plaza);
+  for (let i = 0; i < 3; i++) {
+    const p = new THREE.Group(); p.position.set(sx * 1.7, 0.08, 0.1 + i * 0.5); plaza.add(p);
+    mesh(cyl(0.02, 0.03, 0.55, 6), M('#8a5a3c'), [0, 0.27, 0], p);
+    for (let k = 0; k < 6; k++) {
+      const leaf = mesh(box(0.26, 0.012, 0.06), M('#3f9a50'), [Math.cos(k * 1.05) * 0.1, 0.55, Math.sin(k * 1.05) * 0.1], p, false);
+      leaf.rotation.set(0, -k * 1.05, -0.45);
+    }
+  }
+}
+// edifício neoclássico
+const cream = M('#f6efe0', { roughness: 0.7 }), stone = M('#e2d6bd', { roughness: 0.8 });
+const pal = new THREE.Group(); pal.position.set(0, 0, -1.0); plaza.add(pal);
+for (let i = 0; i < 4; i++) mesh(box(2.6 - i * 0.08, 0.06, 1.5 - i * 0.08), stone, [0, 0.03 + i * 0.06, 0.15 - i * 0.03], pal);
+mesh(box(2.4, 1.15, 1.0), cream, [0, 0.82, -0.15], pal);
+const winM = M('#5b84b8', { roughness: 0.3, metalness: 0.2 });
+for (const x of [-0.95, -0.65, 0.65, 0.95]) for (const y of [0.55, 1.05]) mesh(box(0.16, 0.26, 0.02), winM, [x, y, 0.36], pal, false);
+for (let i = 0; i < 6; i++) {
+  const x = -0.5 + i * 0.2;
+  mesh(cyl(0.045, 0.05, 1.0, 16), M('#ffffff', { roughness: 0.5 }), [x, 0.74, 0.5], pal);
+  mesh(box(0.12, 0.04, 0.12), stone, [x, 1.26, 0.5], pal);
+}
+mesh(box(1.3, 0.1, 0.32), cream, [0, 1.32, 0.42], pal);
+const tri = new THREE.Shape(); tri.moveTo(-0.7, 0); tri.lineTo(0.7, 0); tri.lineTo(0, 0.38); tri.lineTo(-0.7, 0);
+const ped = mesh(new THREE.ExtrudeGeometry(tri, { depth: 0.3, bevelEnabled: false }), cream, [0, 1.37, 0.28], pal);
+mesh(box(2.5, 0.08, 1.06), stone, [0, 1.42, -0.15], pal);
+// bandeira de Pernambuco
+const flagTex = canvasTex(600, 400, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#2a63b8'; g.fillRect(0, 0, w, h * 0.6);
+  const cx = w / 2, cy = h * 0.5;
+  [['#e63946', 120], ['#ffd60a', 104], ['#2e9e4f', 88]].forEach(([c, r]) => {
+    g.strokeStyle = c; g.lineWidth = 16; g.beginPath(); g.arc(cx, cy, r, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+  });
+  g.fillStyle = '#ffd60a';
+  g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 14 : 34; g.lineTo(cx + Math.cos(a) * r, 52 + Math.sin(a) * r); } g.fill();
+  g.beginPath(); g.arc(cx, cy - 18, 26, 0, 7); g.fill();
+  g.fillStyle = '#e63946'; g.fillRect(cx - 9, h * 0.66, 18, 90); g.fillRect(cx - 34, h * 0.73, 68, 16);
+});
+const pole = mesh(cyl(0.02, 0.025, 2.4, 8), M('#cfd4dc', { metalness: 0.6, roughness: 0.3 }), [-1.55, 1.2, -0.3], plaza);
+const flagGeo = new THREE.PlaneGeometry(0.9, 0.6, 24, 8);
+const flagBase = flagGeo.attributes.position.array.slice();
+const flag = mesh(flagGeo, new THREE.MeshStandardMaterial({ map: flagTex, side: THREE.DoubleSide, roughness: 0.8 }), [-1.1, 2.1, -0.3], plaza, false);
+
+// ------------------------------------------------------------ mascote
+const fa = makeFaisca(); scene.add(fa.root);
+const FA = new THREE.Vector3(0.75, 0.95, 1.1);
+
+// ------------------------------------------------------------ hologramas por tema
+const HC = new THREE.Vector3(-0.3, 1.2, 0.9);  // centro dos hologramas
+const holoBase = mesh(cyl(0.75, 0.75, 0.02, 64), glow('#7fd3ff', 0.18), [HC.x, 0.06, HC.z], scene, false);
+const holoRing = mesh(new THREE.TorusGeometry(0.75, 0.012, 8, 96), glow('#bdf0ff', 0.7), [HC.x, 0.07, HC.z], scene, false);
+holoRing.rotation.x = Math.PI / 2;
+const beamCone = mesh(new THREE.CylinderGeometry(0.55, 0.75, 1.2, 48, 1, true), glow('#7fd3ff', 0.08), [HC.x, 0.66, HC.z], scene, false);
+beamCone.material.side = THREE.DoubleSide;
+function extr(shape, depth, color, o = {}) {
+  return new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 3, curveSegments: 24 }),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.15, emissive: color, emissiveIntensity: 0.25, ...o }));
+}
+function starShape(r1, r2) {
+  const s = new THREE.Shape();
+  for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? r2 : r1; i ? s.lineTo(Math.cos(a) * r, Math.sin(a) * r) : s.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+  return s;
+}
+const topics = {};
+function topic(name, build, labels) {
+  const g = new THREE.Group(); g.position.copy(HC); scene.add(g);
+  build(g);
+  const ls = labels.map(([text, opt, y]) => { const l = label(text, opt); l.position.set(0, y, 0.35); g.add(l); return l; });
+  topics[name] = { g, ls };
+}
+// trajetória: três colunas de luz (2014, 2018, 2022)
+const pillars = [];
+topic('trajetoria', g => {
+  [['2014', 'Eleito'], ['2018', 'Reeleito'], ['2022', 'Reeleito']].forEach(([ano, txt], i) => {
+    const p = new THREE.Group(); p.position.set(-0.5 + i * 0.5, -0.75, 0); g.add(p);
+    const m = mesh(box(0.3, 1, 0.3), new THREE.MeshStandardMaterial({ color: '#ffd166', emissive: '#ffb703', emissiveIntensity: 0.45, transparent: true, opacity: 0.92 }), [0, 0.5, 0], p, false);
+    const tl = label(`${ano}: ${txt.toLowerCase()}`, { color: '#ffffff', bg: '#1f6fd6', size: 0.15 }); p.add(tl);
+    pillars.push({ p, m, tl, h: 0.4 + i * 0.25 });
+  });
+}, [['12 anos na Alepe', { color: '#1d1b2e', bg: '#ffd60a', size: 0.26 }, 0.85]]);
+// segurança: escudo com estrela
+topic('seguranca', g => {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0.5); s.quadraticCurveTo(0.22, 0.42, 0.42, 0.45); s.lineTo(0.42, 0.05);
+  s.quadraticCurveTo(0.4, -0.35, 0, -0.55); s.quadraticCurveTo(-0.4, -0.35, -0.42, 0.05);
+  s.lineTo(-0.42, 0.45); s.quadraticCurveTo(-0.22, 0.42, 0, 0.5);
+  const sh = extr(s, 0.12, '#1f4fa8'); sh.position.z = -0.06; g.add(sh);
+  const st = extr(starShape(0.22, 0.09), 0.06, '#ffd166', { metalness: 0.5, emissiveIntensity: 0.4 }); st.position.set(0, 0.02, 0.1); g.add(st);
+  topics._shield = sh;
+}, [['Presidente da Comissão', { color: '#ffffff', bg: '#1f4fa8', size: 0.2 }, 0.98], ['de Segurança Pública', { color: '#ffffff', bg: '#1f4fa8', size: 0.2 }, 0.76]]);
+// inclusão: peça de quebra-cabeça + prato
+function puzzleShape(sz = 0.5) {
+  const h = sz / 2, k = sz * 0.17, s = new THREE.Shape();
+  s.moveTo(-h, -h); s.lineTo(-k, -h); s.absarc(0, -h, k, Math.PI, 0, true); s.lineTo(h, -h);
+  s.lineTo(h, -k); s.absarc(h, 0, k, -Math.PI / 2, Math.PI / 2, false); s.lineTo(h, h);
+  s.lineTo(k, h); s.absarc(0, h, k, 0, Math.PI, false); s.lineTo(-h, h);
+  s.lineTo(-h, k); s.absarc(-h, 0, k, Math.PI / 2, -Math.PI / 2, true); s.lineTo(-h, -h);
+  return s;
+}
+topic('inclusao', g => {
+  const pz = extr(puzzleShape(0.62), 0.1, '#2f8bff'); pz.position.set(-0.05, 0.05, -0.05); g.add(pz);
+  topics._pz = pz;
+}, [['Lei nº 18.689/2024', { color: '#1d1b2e', bg: '#ffffff', size: 0.22 }, 0.98], ['Merenda escolar adaptada', { color: '#ffffff', bg: '#2f8bff', size: 0.2 }, 0.74]]);
+// frente parlamentar: quatro peças se encaixando
+const pieces = [];
+topic('frente', g => {
+  ['#e63946', '#ffd166', '#2e9e4f', '#2f8bff'].forEach((c, i) => {
+    const pz = extr(puzzleShape(0.36), 0.08, c); g.add(pz);
+    pieces.push({ pz, to: new THREE.Vector3((i % 2 ? 0.2 : -0.2), (i < 2 ? 0.22 : -0.18), 0), from: new THREE.Vector3((i % 2 ? 1 : -1) * 0.9, (i < 2 ? 0.8 : -0.6), 0), rot: (i % 2 ? -1 : 1) * 1.6 });
+  });
+}, [['Frente Parlamentar', { color: '#ffffff', bg: '#1d1b2e', size: 0.22 }, 1.02], ['Inclusão e autismo na escola', { color: '#1d1b2e', bg: '#ffd166', size: 0.19 }, 0.78]]);
+// animais: pegada
+const toes = [];
+topic('animais', g => {
+  const pawM = new THREE.MeshStandardMaterial({ color: '#ff8c42', emissive: '#ff8c42', emissiveIntensity: 0.3, roughness: 0.4 });
+  const pad = mesh(sph(0.26, 32, 20), pawM, [0, -0.1, 0], g, false); pad.scale.set(1.15, 0.9, 0.45);
+  [[-0.3, 0.2], [-0.11, 0.36], [0.11, 0.36], [0.3, 0.2]].forEach(([x, y]) => {
+    const t = mesh(sph(0.11, 24, 16), pawM, [x, y, 0], g, false); t.scale.set(0.9, 1.1, 0.45); toes.push(t);
+  });
+  const heart = new THREE.Shape(); heart.moveTo(0, -0.08);
+  heart.bezierCurveTo(-0.16, 0.04, -0.12, 0.16, 0, 0.09); heart.bezierCurveTo(0.12, 0.16, 0.16, 0.04, 0, -0.08);
+  const hm = extr(heart, 0.03, '#ff4d6d'); hm.position.set(0, -0.12, 0.12); g.add(hm);
+}, [['Lei nº 19.021/2025', { color: '#1d1b2e', bg: '#ffffff', size: 0.22 }, 0.98], ['Adestramento sem violência', { color: '#ffffff', bg: '#ff8c42', size: 0.2 }, 0.74]]);
+// final: coração com as cores de Pernambuco
+topic('final', g => {
+  const hs = new THREE.Shape(); hs.moveTo(0, -0.42);
+  hs.bezierCurveTo(-0.8, 0.12, -0.5, 0.75, 0, 0.36); hs.bezierCurveTo(0.5, 0.75, 0.8, 0.12, 0, -0.42);
+  const hm = extr(hs, 0.14, '#e63946'); hm.position.z = -0.07; g.add(hm);
+  const st = extr(starShape(0.14, 0.06), 0.05, '#ffd60a', { metalness: 0.4 }); st.position.set(0, 0.12, 0.12); g.add(st);
+  topics._heart = hm;
+}, [['Por Pernambuco', { color: '#ffffff', bg: '#2a63b8', size: 0.26 }, 0.75]]);
+const TOPIC_SHOTS = ['trajetoria', 'seguranca', 'inclusao', 'frente', 'animais', 'final'];
+
+// ------------------------------------------------------------ câmera
+const CAM = {
+  trajetoria: [[0.2, 1.7, 5.9], [-0.15, 1.05, 0.6], [0.35, 1.65, 5.4], [-0.1, 1.1, 0.6]],
+  seguranca: [[-0.1, 1.6, 5.6], [-0.15, 1.05, 0.7], [0.15, 1.6, 5.2], [-0.1, 1.1, 0.7]],
+  inclusao: [[0.3, 1.7, 5.6], [-0.15, 1.05, 0.7], [0.1, 1.65, 5.2], [-0.1, 1.1, 0.7]],
+  frente: [[-0.2, 1.6, 5.5], [-0.15, 1.05, 0.7], [0.1, 1.6, 5.1], [-0.1, 1.1, 0.7]],
+  animais: [[0.25, 1.65, 5.5], [-0.15, 1.05, 0.7], [0.05, 1.6, 5.1], [-0.1, 1.1, 0.7]],
+  final: [[0.0, 1.8, 5.4], [0, 1.0, 0.4], [0.2, 2.2, 6.4], [0, 1.0, 0.0]],
+  cartao: [[0.2, 2.2, 6.4], [0, 1.0, 0.0], [0.3, 2.6, 7.2], [0, 0.9, 0.0]],
+};
+function setCamera(shot, t) {
+  const k = smooth((t - shot.start) / (shot.end - shot.start));
+  let p, q;
+  if (shot.name === 'externa' || shot.name === 'gancho') {
+    const lt = Math.max(0, t - S.gancho.start);
+    if (lt < 2.6) {  // voo baixo pela praça até a fachada
+      const e = easeOut(lt / 2.6);
+      p = [lerp(2.8, 1.3, e), lerp(0.5, 0.75, e), lerp(2.8, 2.2, e)]; q = [lerp(-0.6, -0.3, e), lerp(1.0, 1.1, e), lerp(-1.2, -1.0, e)];
+    } else {  // plano aberto de cima, girando
+      const e = easeOut((lt - 2.6) / Math.max(0.5, S.gancho.end - S.gancho.start - 2.6));
+      const a = lerp(-0.6, 0.1, e);
+      p = [Math.sin(a) * lerp(7.5, 6.0, e), lerp(4.2, 2.6, e), Math.cos(a) * lerp(7.5, 6.0, e)]; q = [0, lerp(0.4, 0.8, e), 0];
+    }
+  } else {
+    const c = CAM[shot.name];
+    p = c[0].map((v, i) => lerp(v, c[2][i], k));
+    q = c[1].map((v, i) => lerp(v, c[3][i], k));
+  }
+  p[0] += Math.sin(t * 0.7) * 0.02; p[1] += Math.sin(t * 1.1 + 1) * 0.012;
+  camera.position.set(...p); camera.lookAt(...q);
+}
+
+const overlay = makeOverlay(TL, {
+  names: { faisca: '' }, colors: { faisca: '#e07a52' },
+  keyClass: w => /^(2014|2018|2022|doze|três|Pernambuco)/i.test(w) ? 'n' : '',
+});
+const FONTES = [
+  [S.inclusao, '<b>Lei Estadual nº 18.689/2024</b>: merenda escolar adaptada para crianças com seletividade alimentar.'],
+  [S.animais, '<b>Lei Estadual nº 19.021/2025</b>: proíbe o adestramento de animais com práticas violentas.'],
+];
+const $ = id => document.getElementById(id);
+function fonte(t) {
+  const f = FONTES.find(([s]) => t >= s.start && t < s.end);
+  if (!f) { $('fonte').style.opacity = 0; return; }
+  $('fonte').innerHTML = f[1];
+  $('fonte').style.opacity = smooth((t - f[0].start - 0.3) / 0.4) * (1 - smooth((t - f[0].end + 0.3) / 0.3));
+}
+function gancho(t) {
+  $('flash').style.opacity = 0;
+  const L0 = L[0], L0d = L0.end - L0.start;
+  const out = 1 - smooth((t - L0.start - L0d * 0.55) / 0.35);
+  $('hook').style.opacity = out;
+  $('num').style.transform = `scale(${1 + 0.12 * (1 - easeOut(t / 0.3)) + 0.03 * Math.max(0, Math.sin(t * 8))})`;
+  const chip = easeBack((t - 0.9) / 0.4);
+  $('hook').querySelector('.chip').style.transform = `scale(${Math.max(0.01, chip)}) rotate(-3deg)`;
+  // título "Prestação de contas" com a logomarca (carimbo)
+  const st = t - (L0.start + L0d * 0.6);
+  const stIn = clamp(easeBack(st / 0.35, 2.2)), stOut = 1 - smooth((t - S.trajetoria.start - 1.2) / 0.4);
+  $('title').style.opacity = st > 0 ? stIn * stOut : 0;
+  $('title').style.transform = `scale(${lerp(2.0, 1, stIn)}) rotate(${lerp(-7, -1.5, stIn)}deg)`;
+}
+
+// ------------------------------------------------------------ animação
+const speaking = t => TL.mouth.faisca[Math.min(TL.mouth.faisca.length - 1, Math.max(0, Math.round(t * TL.fps)))];
+const blink = t => ((t + 1.9) % 3.3) < 0.13 ? 0.15 : 1;
+
+function animate(t) {
+  const shot = TL.shots.find(s => t >= s.start && t < s.end) || TL.shots[TL.shots.length - 1];
+  setCamera(shot, t);
+  // bandeira tremulando
+  const pos = flagGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = flagBase[i * 3], y = flagBase[i * 3 + 1];
+    const u = (x + 0.45) / 0.9;
+    pos.setZ(i, Math.sin(u * 7 - t * 5) * 0.05 * u + Math.sin(y * 6 + t * 3) * 0.01 * u);
+  }
+  pos.needsUpdate = true; flagGeo.computeVertexNormals();
+
+  // mascote
+  const talk = speaking(t);
+  const appear = t - (S.trajetoria.start + 0.2);
+  fa.root.visible = appear > 0;
+  fa.root.scale.setScalar(0.85 * Math.max(0.001, easeBack(appear / 0.5, 2.2)));
+  fa.root.position.set(FA.x, FA.y + Math.sin(t * 2.2) * 0.04, FA.z);
+  fa.root.rotation.y = -0.55 + Math.sin(t * 0.6) * 0.08 + (1 - easeOut(appear / 0.7)) * Math.PI * 2;
+  const sq = 1 + talk * 0.04 * Math.sin(t * 14);
+  fa.body.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
+  fa.body.rotation.z = Math.sin(t * 1.6) * 0.03 + talk * Math.sin(t * 4) * 0.04;
+  fa.mouth.scale.set(1.25 - talk * 0.25, 0.2 + talk * 1.0, 0.45);
+  fa.eyes.forEach(e => { e.scale.y = blink(t); });
+  fa.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 2.5 + i * 2) * 0.2; });
+  let aL = 1.85 + Math.sin(t * 2) * 0.1, aR = 0.25 + Math.sin(t * 2.2 + 1) * 0.06;
+  if (talk > 0.05) aR += Math.sin(t * 4.5 + 2) * 0.25 * talk + 0.15;
+  const bye = smooth((t - L[L.length - 1].start) / 0.4);
+  aR = lerp(aR, 2.6 + Math.sin(t * 11) * 0.3, bye);
+  fa.arms[0].rotation.z = -aL; fa.arms[1].rotation.z = aR;
+
+  // base do holograma
+  const anyTopic = TOPIC_SHOTS.some(n => t >= S[n].start - 0.2 && t < S[n].end + 0.2) ? 1 : 0;
+  const baseK = smooth((t - S.trajetoria.start) / 0.5) * (1 - smooth((t - S.cartao.start) / 0.5));
+  holoBase.visible = holoRing.visible = beamCone.visible = baseK > 0.01;
+  holoRing.rotation.z = t * 0.6; beamCone.material.opacity = 0.08 * baseK * anyTopic;
+
+  // cada tema entra e sai junto com o seu plano
+  TOPIC_SHOTS.forEach(n => {
+    const s = S[n];
+    const end = n === 'final' ? S.cartao.start : s.end;
+    const k = easeBack((t - s.start - 0.15) / 0.5) * (1 - smooth((t - end + 0.25) / 0.3));
+    const tp = topics[n];
+    tp.g.visible = k > 0.01;
+    tp.g.scale.setScalar(Math.max(0.001, k));
+    tp.g.position.y = HC.y + Math.sin(t * 1.5) * 0.04;
+    tp.ls.forEach((l, i) => {
+      const lk = easeBack((t - s.start - 0.6 - i * 0.35) / 0.4);
+      l.visible = lk > 0.01;
+      l.scale.set(l.userData.aspect * l.userData.size * lk, l.userData.size * lk, 1);
+    });
+  });
+  // detalhes de cada tema
+  const tr = (t - S.trajetoria.start) / (S.trajetoria.end - S.trajetoria.start);
+  pillars.forEach((p, i) => {
+    const g = easeOut((tr - 0.12 - i * 0.22) / 0.2);
+    const h = Math.max(0.001, p.h * g);
+    p.m.scale.y = h; p.m.position.y = h / 2;
+    p.tl.position.set(0, h + 0.16, 0.3);
+    p.tl.visible = g > 0.3;
+  });
+  if (topics._shield) topics.seguranca.g.rotation.y = Math.sin(t * 1.2) * 0.35;
+  topics.inclusao.g.rotation.y = Math.sin(t * 1.3) * 0.3; topics._pz.rotation.z = Math.sin(t * 2) * 0.08;
+  const fk = easeOut((t - S.frente.start - 0.4) / 1.2);
+  pieces.forEach(p => { p.pz.position.lerpVectors(p.from, p.to, fk); p.pz.rotation.z = p.rot * (1 - fk); });
+  topics.frente.g.rotation.y = Math.sin(t * 1.1) * 0.25;
+  topics.animais.g.rotation.y = Math.sin(t * 1.3) * 0.3;
+  toes.forEach((to, i) => { to.position.z = Math.max(0, Math.sin(t * 6 - i * 0.8)) * 0.03; });
+  topics.final.g.rotation.y = Math.sin(t * 1.0) * 0.3;
+  topics._heart.scale.setScalar(1 + 0.06 * Math.max(0, Math.sin(t * 5)));
+
+  overlay(t);
+  fonte(t);
+  gancho(t);
+}
+
+// guarda o tamanho original de cada plaquinha para animar a escala
+scene.traverse(o => { if (o.isSprite && o.userData.aspect) o.userData.size = o.scale.y; });
+
+window.renderAt = t => { animate(t); renderer.render(scene, camera); return true; };
+window.TOTAL = TL.total;
+window.ready = true;
+</script>
+</body>
+</html>
