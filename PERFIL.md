@@ -101,6 +101,7 @@ Eleito em 2014 e reeleito em 2018 e 2022, foram três mandatos dedicados a Perna
 🧩 Inclusão: autor da Lei nº 18.689/2024, que garante merenda escolar adaptada para crianças com seletividade alimentar, e coordenação da frente parlamentar pela inclusão de estudantes com transtornos do neurodesenvolvimento.
 💜 Mulheres: autor da Lei nº 16.659/2019, que obriga bares, restaurantes e casas de espetáculo a exibir cartazes com os números 190 e 180 para denunciar a violência contra a mulher.
 📚 Educação: autor da Lei nº 18.999/2025, que cria o programa estadual de incentivo ao desempenho escolar.
+🙏 Liberdade religiosa: um dos autores do projeto aprovado pela Alepe que garante manifestações religiosas voluntárias nas escolas, como os intervalos bíblicos, fora do horário das aulas.
 🐾 Animais: autor da Lei nº 19.021/2025, que proíbe o adestramento de animais com violência em Pernambuco.
 👨‍👩‍👧 Família: autor da lei que incluiu o Dia dos Pais e o Dia das Mães no calendário oficial de Pernambuco.
 

@@ -299,6 +299,25 @@ topic('familia', g => {
   topics._cal = g;
   g.children.forEach(c => c.scale.multiplyScalar(1.3));
 }, [['Dia dos Pais e Dia das Mães', { color: '#ffffff', bg: '#e63946', size: 0.19 }, 0.98], ['no calendário oficial de PE', { color: '#1d1b2e', bg: '#ffffff', size: 0.19 }, 0.74]]);
+// liberdade religiosa: Bíblia aberta com brilho
+topic('religiao', g => {
+  const book = new THREE.Group(); book.position.set(0, 0, 0); book.rotation.x = 0.35; g.add(book);
+  const pageTex = canvasTex(256, 320, (c, w, h) => {
+    c.fillStyle = '#fffaf0'; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(60,50,40,.55)';
+    for (let y = 40; y < h - 30; y += 22) c.fillRect(26, y, w - 52 - (y % 3) * 14, 7);
+  });
+  for (const sx of [-1, 1]) {
+    mesh(box(0.36, 0.48, 0.03), M('#7a2e1f', { roughness: 0.6 }), [sx * 0.19, 0, -0.03], book, false).rotation.y = -sx * 0.18;
+    const pg = mesh(box(0.34, 0.46, 0.04), new THREE.MeshStandardMaterial({ map: pageTex, roughness: 0.8 }), [sx * 0.18, 0, 0.0], book, false);
+    pg.rotation.y = -sx * 0.18;
+  }
+  const cross = new THREE.Group(); cross.position.set(0, 0.42, 0.05); g.add(cross);
+  const gm = M('#ffd166', { metalness: 0.5, roughness: 0.3, emissive: '#b8860b', emissiveIntensity: 0.4 });
+  mesh(box(0.05, 0.22, 0.04), gm, [0, 0, 0], cross, false); mesh(box(0.15, 0.05, 0.04), gm, [0, 0.04, 0], cross, false);
+  mesh(sph(0.42, 24, 16), glow('#fff3b0', 0.12), [0, 0.05, -0.1], g, false);
+  topics._book = book;
+}, [['Liberdade religiosa nas escolas', { color: '#ffffff', bg: '#7a2e1f', size: 0.18 }, 0.98], ['Projeto aprovado pela Alepe', { color: '#1d1b2e', bg: '#ffffff', size: 0.2 }, 0.74]]);
 // final: coração com as cores de Pernambuco
 topic('final', g => {
   const hs = new THREE.Shape(); hs.moveTo(0, -0.42);
@@ -307,7 +326,7 @@ topic('final', g => {
   const st = extr(starShape(0.14, 0.06), 0.05, '#ffd60a', { metalness: 0.4 }); st.position.set(0, 0.12, 0.12); g.add(st);
   topics._heart = hm;
 }, [['Por Pernambuco', { color: '#ffffff', bg: '#2a63b8', size: 0.26 }, 0.75]]);
-const TOPIC_SHOTS = ['trajetoria', 'seguranca', 'mulheres', 'inclusao', 'frente', 'educacao', 'animais', 'familia', 'final'];
+const TOPIC_SHOTS = ['trajetoria', 'seguranca', 'mulheres', 'inclusao', 'frente', 'educacao', 'religiao', 'animais', 'familia', 'final'];
 
 // ------------------------------------------------------------ câmera
 const CAM = {
@@ -317,6 +336,7 @@ const CAM = {
   frente: [[-0.2, 1.6, 5.5], [-0.15, 1.05, 0.7], [0.1, 1.6, 5.1], [-0.1, 1.1, 0.7]],
   mulheres: [[0.2, 1.65, 5.6], [-0.15, 1.05, 0.7], [-0.05, 1.6, 5.2], [-0.1, 1.1, 0.7]],
   educacao: [[-0.15, 1.65, 5.5], [-0.15, 1.05, 0.7], [0.15, 1.6, 5.1], [-0.1, 1.1, 0.7]],
+  religiao: [[-0.2, 1.65, 5.5], [-0.15, 1.05, 0.7], [0.1, 1.6, 5.1], [-0.1, 1.1, 0.7]],
   familia: [[0.2, 1.6, 5.5], [-0.15, 1.05, 0.7], [0.0, 1.6, 5.1], [-0.1, 1.1, 0.7]],
   animais: [[0.25, 1.65, 5.5], [-0.15, 1.05, 0.7], [0.05, 1.6, 5.1], [-0.1, 1.1, 0.7]],
   final: [[0.0, 1.8, 5.4], [0, 1.0, 0.4], [0.2, 2.2, 6.4], [0, 1.0, 0.0]],
@@ -353,6 +373,7 @@ const FONTES = [
   [S.animais, '<b>Lei Estadual nº 19.021/2025</b>: proíbe o adestramento de animais com práticas violentas.'],
   [S.mulheres, '<b>Lei Estadual nº 16.659/2019</b>: cartazes com os números 190 e 180 em bares, restaurantes e casas de espetáculo.'],
   [S.educacao, '<b>Lei Estadual nº 18.999/2025</b>: programa estadual de incentivo ao desempenho escolar.'],
+  [S.religiao, '<b>PL nº 3043/2025</b>, aprovado pela Alepe em texto conjunto (Política Estadual de Liberdade Religiosa no Ambiente Educacional) e enviado à sanção.'],
   [S.seguranca, '<b>Comissão de Segurança Pública da Alepe</b>: 71 projetos de lei aprovados em 2025.'],
 ];
 const $ = id => document.getElementById(id);
@@ -453,6 +474,7 @@ function animate(t) {
   topics.mulheres.g.rotation.y = Math.sin(t * 1.2) * 0.25;
   topics.educacao.g.rotation.y = Math.sin(t * 1.1) * 0.3; topics._medal.rotation.z = Math.sin(t * 2.2) * 0.12;
   topics.familia.g.rotation.y = Math.sin(t * 1.0) * 0.28;
+  topics.religiao.g.rotation.y = Math.sin(t * 0.9) * 0.25;
   topics._heart.scale.setScalar(1 + 0.06 * Math.max(0, Math.sin(t * 5)));
 
   overlay(t);

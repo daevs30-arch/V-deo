@@ -15,6 +15,9 @@ Fatos (conferidos em novembro de 2026):
 - Autor da Lei nº 16.659/2019: cartazes em bares, restaurantes e casas de espetáculo
   com os números 190 e 180 para denunciar a violência contra a mulher.
 - Autor da Lei nº 18.999/2025: programa estadual de incentivo ao desempenho escolar.
+- Um dos autores do PL 3043/2025 (liberdade religiosa nas escolas / intervalos bíblicos),
+  aprovado pela Alepe em texto conjunto e enviado à sanção em maio de 2026; sanção não
+  confirmada, por isso o vídeo diz "projeto aprovado", não "lei".
 - Autor da lei de 2017 que incluiu o Dia dos Pais e o Dia das Mães no calendário
   oficial de Pernambuco (segundo o próprio deputado, em reportagens).
 
@@ -46,6 +49,9 @@ ROTEIRO = [
     ("faisca", "Na educação, é autor da lei que cria o programa estadual de incentivo ao "
                "desempenho escolar, que reconhece e premia estudantes da rede pública que se "
                "destacam.", "educacao", 0.5),
+    ("faisca", "Pela liberdade religiosa, é um dos autores do projeto aprovado pela Assembleia "
+               "que garante manifestações religiosas voluntárias nas escolas, como os intervalos "
+               "bíblicos, fora do horário das aulas.", "religiao", 0.5),
     ("faisca", "E também é autor da lei que proíbe o adestramento de animais com violência "
                "em Pernambuco.", "animais", 0.5),
     ("faisca", "Pela família, é autor da lei que incluiu o Dia dos Pais e o Dia das Mães no "
@@ -67,6 +73,7 @@ EPISODIO = {
             ("trajetoria", 0.2, "subida", 0.3), ("seguranca", 0.2, "whoosh", 0.35),
             ("mulheres", 0.2, "pop", 0.3), ("inclusao", 0.2, "brilho", 0.3),
             ("frente", 0.2, "pop", 0.3), ("educacao", 0.2, "subida", 0.25),
+            ("religiao", 0.2, "brilho", 0.25),
             ("animais", 0.2, "cintilar", 0.3), ("familia", 0.2, "brilho", 0.25),
             ("final", 0.3, "whoosh_longo", 0.35), ("cartao", 0.1, "final", 0.4)],
 }
