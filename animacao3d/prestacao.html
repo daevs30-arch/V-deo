@@ -12,6 +12,19 @@
   #title { position: absolute; top: 250px; width: 100%; text-align: center; opacity: 0; }
   #title .a { font-weight: 900; font-size: 104px; color: #fff; display: block; line-height: 1.05; }
   #title img { width: 760px; margin-top: 36px; }
+  #fotocard { position: absolute; top: 560px; width: 100%; text-align: center; opacity: 0; }
+  #fotocard img { width: 400px; height: 400px; border-radius: 50%; border: 12px solid #fff;
+    box-shadow: 0 0 0 8px #1d1b2e, 0 18px 50px rgba(0,0,0,.45); }
+  #fotocard .nome { display: inline-block; margin-top: -40px; position: relative; padding: 12px 36px;
+    background: #1f6fd6; color: #fff; font-weight: 900; font-size: 58px; border-radius: 22px; border: 7px solid #1d1b2e; }
+  #quote { position: absolute; top: 230px; left: 50px; right: 50px; display: flex; align-items: center; gap: 26px; opacity: 0; }
+  #quote img { width: 250px; height: 250px; border-radius: 50%; border: 9px solid #fff; flex: none;
+    box-shadow: 0 0 0 6px #1d1b2e, 0 12px 30px rgba(0,0,0,.35); }
+  #quote .b { position: relative; background: #fff; border: 7px solid #1d1b2e; border-radius: 34px; padding: 26px 30px;
+    font-weight: 900; font-size: 46px; line-height: 1.2; color: #1d1b2e; }
+  #quote .b::before { content: ''; position: absolute; left: -30px; top: 50%; margin-top: -18px; border: 18px solid transparent;
+    border-right: 26px solid #1d1b2e; border-left: 0; }
+  #quote .b span { color: #1f6fd6; }
   #sub { position: absolute; left: 60px; right: 60px; bottom: 230px; background: #fff;
     border: 8px solid #1d1b2e; border-radius: 44px; padding: 40px 44px 40px;
     box-shadow: 0 14px 0 rgba(29, 27, 46, .35); transform-origin: 50% 100%; }
@@ -70,7 +83,9 @@
     <div class="temas t2"><span style="background:#2f8bff">Inclusão</span><span style="background:#ff8c42">Animais</span><span style="background:#e63946">Família</span></div>
     <img class="logo" src="logo_jaboatao.png"></div>
   <div id="hook"><div id="num">12 ANOS</div><br><div class="chip">3 MANDATOS</div></div>
-  <div id="title"><span class="a stroke">PRESTAÇÃO<br>DE CONTAS</span><img src="logo_jaboatao.png"></div>
+  <div id="title"><span class="a stroke">PRESTAÇÃO<br>DE CONTAS</span></div>
+  <div id="fotocard"><img src="foto_joel.png"><br><div class="nome">Deputado Joel da Harpa</div></div>
+  <div id="quote"><img src="foto_joel.png"><div class="b">“Mesmo sem mandato, vou continuar trabalhando por <span>Pernambuco</span>.”</div></div>
   <div id="fonte"></div>
   <div id="sub"><div id="who"></div><div id="txt"></div></div>
   <div id="card"><div class="c1 stroke">Obrigado,<br>Pernambuco!</div>
@@ -208,6 +223,13 @@ topic('trajetoria', g => {
     const tl = label(`${ano}: ${txt.toLowerCase()}`, { color: '#ffffff', bg: '#1f6fd6', size: 0.15 }); p.add(tl);
     pillars.push({ p, m, tl, h: 0.4 + i * 0.25 });
   });
+  const ft = new THREE.TextureLoader().load('foto_joel.png'); ft.colorSpace = THREE.SRGBColorSpace;
+  const face = new THREE.Sprite(new THREE.SpriteMaterial({ map: ft, transparent: true, depthWrite: false }));
+  face.scale.set(0.62, 0.62, 1); face.position.set(0.15, 1.35, 0.4); g.add(face);
+  const ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: canvasTex(256, 256, (c, w, h) => {
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(w / 2, h / 2, w / 2 - 2, 0, 7); c.fill(); }), transparent: true, depthWrite: false }));
+  ring.scale.set(0.68, 0.68, 1); ring.position.set(0.15, 1.35, 0.39); g.add(ring);
+  topics._face = [ring, face];
 }, [['12 anos na Alepe', { color: '#1d1b2e', bg: '#ffd60a', size: 0.26 }, 0.85]]);
 // segurança: escudo com estrela
 topic('seguranca', g => {
@@ -398,6 +420,16 @@ function gancho(t) {
   const stIn = clamp(easeBack(st / 0.35, 2.2)), stOut = 1 - smooth((t - S.trajetoria.start - 1.2) / 0.4);
   $('title').style.opacity = st > 0 ? stIn * stOut : 0;
   $('title').style.transform = `scale(${lerp(2.0, 1, stIn)}) rotate(${lerp(-7, -1.5, stIn)}deg)`;
+  // foto do deputado quando o nome dele é dito pela primeira vez (fim da 1ª fala)
+  const ft = t - (L0.start + L0d * 0.78);
+  const fIn = clamp(easeBack(ft / 0.4, 2.0)), fOut = 1 - smooth((t - S.trajetoria.start - 1.2) / 0.4);
+  $('fotocard').style.opacity = ft > 0 ? clamp(ft / 0.15) * fOut : 0;
+  $('fotocard').style.transform = `scale(${Math.max(0.01, fIn)}) rotate(${Math.sin(t * 2) * 1.2}deg)`;
+  // no final, a foto com o balão da frase dele
+  const Lq = L[L.length - 2], qt = t - (Lq.start + (Lq.end - Lq.start) * 0.32);
+  const qIn = clamp(easeBack(qt / 0.45, 1.8)), qOut = 1 - smooth((t - S.cartao.start + 0.2) / 0.3);
+  $('quote').style.opacity = qt > 0 ? clamp(qt / 0.15) * qOut : 0;
+  $('quote').style.transform = `translateY(${(1 - qIn) * -40}px) scale(${lerp(0.7, 1, qIn)})`;
 }
 
 // ------------------------------------------------------------ animação
