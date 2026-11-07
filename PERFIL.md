@@ -84,3 +84,26 @@ Compartilhe com quem mora em Jaboatão 👇
 #jaboatao #jaboataodosguararapes #pernambuco #segurancapublica #dados #informacao
 ```
 
+
+---
+
+# Descrição do vídeo "Prestação de contas: Joel da Harpa"
+
+**Capa:** `capa_prestacao_de_contas.png` (1080×1920; o texto principal fica no centro, para caber no recorte da grade do perfil)
+
+**Legenda para postar:**
+```
+12 anos de trabalho na Assembleia Legislativa de Pernambuco 🙏🏽
+
+Eleito em 2014 e reeleito em 2018 e 2022, foram três mandatos dedicados a Pernambuco. Esta é a nossa prestação de contas:
+
+🛡️ Segurança pública: presidência da Comissão de Segurança Pública da Alepe e defesa dos policiais e bombeiros militares.
+🧩 Inclusão: autor da Lei nº 18.689/2024, que garante merenda escolar adaptada para crianças com seletividade alimentar, e coordenação da frente parlamentar pela inclusão de estudantes com transtornos do neurodesenvolvimento.
+🐾 Animais: autor da Lei nº 19.021/2025, que proíbe o adestramento de animais com violência em Pernambuco.
+
+O mandato termina, mas o compromisso continua: mesmo sem mandato, sigo trabalhando por Pernambuco.
+
+Obrigado, Pernambuco, pela confiança de todos esses anos! 💙
+
+#joeldaharpa #pernambuco #alepe #prestacaodecontas #segurancapublica #inclusao #autismo #causaanimal
+```

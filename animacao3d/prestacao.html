@@ -38,6 +38,20 @@
   #prog { position: absolute; left: 60px; right: 60px; top: 70px; height: 14px; border-radius: 7px;
     background: rgba(255, 255, 255, .35); overflow: hidden; }
   #prog div { height: 100%; background: #fff; width: 0; }
+  /* capa do vídeo (?capa): texto principal no centro, para caber no recorte da grade do perfil */
+  #capa { position: absolute; inset: 0; display: none; }
+  body.capa #capa { display: block; }
+  body.capa #ov > :not(#capa) { display: none !important; }
+  #capa .grad { position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,30,80,.75) 0, rgba(10,30,80,.1) 40%, rgba(10,30,80,0) 58%, rgba(10,12,40,.9) 86%); }
+  #capa .t0 { position: absolute; top: 300px; width: 100%; text-align: center; font-weight: 900;
+    font-size: 190px; line-height: 1; color: #ffd60a; }
+  #capa .t1 { position: absolute; top: 500px; width: 100%; text-align: center; font-weight: 900;
+    font-size: 96px; line-height: 1.02; color: #fff; }
+  #capa .temas { position: absolute; top: 1270px; width: 100%; display: flex; justify-content: center; gap: 16px;
+    font-weight: 900; font-size: 44px; color: #fff; white-space: nowrap; }
+  #capa .temas span { padding: 10px 22px; border-radius: 20px; border: 6px solid #1d1b2e; }
+  #capa .logo { position: absolute; top: 1390px; left: 50%; width: 760px; transform: translateX(-50%); }
 </style>
 <script type="importmap">
 { "imports": {
@@ -48,6 +62,11 @@
 </head>
 <body>
 <div id="ov">
+  <div id="capa"><div class="grad"></div>
+    <div class="t0 stroke">12 ANOS</div>
+    <div class="t1 stroke">PRESTAÇÃO<br>DE CONTAS</div>
+    <div class="temas"><span style="background:#1f4fa8">Segurança</span><span style="background:#2f8bff">Inclusão</span><span style="background:#ff8c42">Animais</span></div>
+    <img class="logo" src="logo_jaboatao.png"></div>
   <div id="hook"><div id="num">12 ANOS</div><br><div class="chip">3 MANDATOS</div></div>
   <div id="title"><span class="a stroke">PRESTAÇÃO<br>DE CONTAS</span><img src="logo_jaboatao.png"></div>
   <div id="fonte"></div>
@@ -388,6 +407,18 @@ scene.traverse(o => { if (o.isSprite && o.userData.aspect) o.userData.size = o.s
 
 window.renderAt = t => { animate(t); renderer.render(scene, camera); return true; };
 window.TOTAL = TL.total;
+// capa: fachada da Assembleia com o mascote apontando a varinha
+if (location.search.includes('capa')) {
+  document.body.classList.add('capa');
+  animate(S.trajetoria.start + 2.0);
+  Object.values(topics).forEach(tp => { if (tp && tp.g) tp.g.visible = false; });
+  holoBase.visible = holoRing.visible = beamCone.visible = false;
+  fa.root.visible = true; fa.root.scale.setScalar(0.85); fa.root.position.set(0.7, 0.95, 1.2); fa.root.rotation.y = -0.45;
+  fa.arms[0].rotation.z = -1.8; fa.arms[1].rotation.z = 0.35;
+  fa.mouth.scale.set(1.1, 0.7, 0.45); fa.eyes.forEach(e => { e.scale.y = 1; });
+  camera.position.set(0.3, 1.5, 5.6); camera.lookAt(0.1, 1.15, 0);
+  renderer.render(scene, camera);
+}
 window.ready = true;
 </script>
 </body>
