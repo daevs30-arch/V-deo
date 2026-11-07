@@ -25,19 +25,19 @@ ROTEIRO = [
     ("faisca", "Doze anos, três mandatos e muito trabalho. Esta é a prestação de contas do "
                "deputado Joel da Harpa.", "gancho", 0.0),
     ("faisca", "Eleito em 2014 para a Assembleia Legislativa de Pernambuco, ele foi reeleito "
-               "em 2018 e em 2022.", "trajetoria", 0.8),
+               "em 2018 e em 2022.", "trajetoria", 0.6),
     ("faisca", "Na segurança pública, presidiu a Comissão de Segurança da Assembleia e "
-               "defendeu os policiais e bombeiros militares.", "seguranca", 0.7),
+               "defendeu os policiais e bombeiros militares.", "seguranca", 0.5),
     ("faisca", "Na inclusão, é autor da lei que garante merenda escolar adaptada para "
                "crianças com seletividade alimentar, como muitas crianças autistas.",
-     "inclusao", 0.7),
+     "inclusao", 0.5),
     ("faisca", "Ele coordenou a frente parlamentar pela inclusão de estudantes com transtornos "
                "do neurodesenvolvimento e levou o tema do autismo na escola para audiências "
-               "públicas.", "frente", 0.7),
+               "públicas.", "frente", 0.5),
     ("faisca", "E também é autor da lei que proíbe o adestramento de animais com violência "
-               "em Pernambuco.", "animais", 0.7),
+               "em Pernambuco.", "animais", 0.5),
     ("faisca", "Agora, o mandato termina. Mas Joel da Harpa garante: mesmo sem mandato, "
-               "vai continuar trabalhando por Pernambuco.", "final", 0.9),
+               "vai continuar trabalhando por Pernambuco.", "final", 0.7),
     ("faisca", "Obrigado, Pernambuco, pela confiança de todos esses anos!", "final", 0.6),
 ]
 
@@ -47,7 +47,7 @@ EPISODIO = {
     "vozes": os.path.join(BASE, "vozes_prestacao"),
     "build": os.path.join(BASE, "build", "prestacao"),
     "intro": 0.4,
-    "outro": 5.0,
+    "outro": 4.0,
     "musica": 0.45,
     "sfx": [("gancho", 0.1, "impacto", 0.6), ("gancho", 2.6, "whoosh", 0.4),
             ("trajetoria", 0.2, "subida", 0.3), ("seguranca", 0.2, "whoosh", 0.35),
