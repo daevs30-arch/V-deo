@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Abraão Confiou — clipe</title>
+<style>
+  @font-face { font-family: 'Fredoka'; font-weight: 600; src: url(fontes/fredoka-latin-600-normal.woff2); }
+  @font-face { font-family: 'Fredoka'; font-weight: 700; src: url(fontes/fredoka-latin-700-normal.woff2); }
+  @font-face { font-family: 'Baloo'; font-weight: 800; src: url(fontes/baloo-2-latin-800-normal.woff2); }
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; width: 100vw; height: auto; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="dados/analise.js"></script>
+<script src="dados/letra.js"></script>
+<script src="js/base.js"></script>
+<script src="js/cantora.js"></script>
+<script src="js/personagens.js"></script>
+<script src="js/cenarios.js"></script>
+<script src="js/roteiro.js"></script>
+<script>
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  window.pronto = (async () => {
+    await Promise.all([
+      document.fonts.load("600 40px Fredoka"), document.fonts.load("700 40px Fredoka"), document.fonts.load("800 40px Baloo")]);
+    criarTexturas();
+    return true;
+  })();
+  window.desenhar = (t) => { quadro(ctx, t); };
+  window.quadroJPEG = (t, q) => { quadro(ctx, t); return cv.toDataURL('image/jpeg', q || 0.92); };
+  // Pré-visualização no navegador: ?t=segundos para um quadro fixo, ou toca em tempo real.
+  const p = new URLSearchParams(location.search);
+  window.pronto.then(() => {
+    if (p.has('render')) return;
+    if (p.has('t')) { desenhar(parseFloat(p.get('t'))); return; }
+    const audio = new Audio('musica.mp3');
+    document.body.onclick = () => audio.paused ? audio.play() : audio.pause();
+    const loop = () => { desenhar(audio.currentTime); requestAnimationFrame(loop); };
+    loop();
+  });
+</script>
+</body>
+</html>
