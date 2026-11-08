@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Estilo Boneco — gerador de personagens 3D</title>
+<style>
+  html, body { margin: 0; background: #1b1b24; color: #fff; font-family: system-ui, sans-serif; }
+  canvas { display: block; width: 100vw; height: auto; }
+  #barra { position: fixed; left: 12px; top: 12px; z-index: 2; }
+  #barra button { font: 600 15px system-ui; padding: 8px 14px; border-radius: 10px; border: 0; background: #ffcf3a; cursor: pointer; }
+</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/","lil-gui":"./node_modules/lil-gui/dist/lil-gui.esm.js"}}</script>
+</head>
+<body>
+<div id="barra"></div>
+<canvas id="c"></canvas>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
