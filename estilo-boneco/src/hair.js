@@ -6,9 +6,9 @@ import { matCabelo, matSimples } from './materials.js';
 
 function aleatorio(semente) { let s = semente * 9301 + 49297; return () => ((s = (s * 9301 + 49297) % 233280) / 233280); }
 
-export function criarCabelo(p, { penteado = 'liso', corCabelo = '#4a2a18', corGorro = '#e2504c', semente = 1 } = {}) {
+export function criarCabelo(p, { penteado = 'liso', corCabelo = '#4a2a18', corGorro = '#e2504c', corPano = '#efe6d2', barba = null, semente = 1 } = {}) {
   const g = new THREE.Group();
-  if (penteado === 'careca') return g;
+  if (penteado === 'careca' && !barba) return g;
   const mat = matCabelo(corCabelo), rnd = aleatorio(semente);
   // ponto na superfície do crânio (k > 1 = um pouco para fora)
   // o crânio cresce na testa (forma de bebê): o cabelo acompanha esse volume extra
@@ -124,6 +124,30 @@ export function criarCabelo(p, { penteado = 'liso', corCabelo = '#4a2a18', corGo
     barra.scale.set(p.rx * 1.12, p.rz * 1.12, 1); barra.rotation.x = Math.PI / 2 - 0.22; g.add(barra);
     const pom = new THREE.Mesh(new THREE.SphereGeometry(0.28, 32, 24), matSimples('#ffffff', 0.9));
     pom.position.copy(V(0, p.ry * 1.18, 0).applyAxisAngle(V(1, 0, 0), -0.22)).add(V(0, 0.18, 0)); g.add(pom);
+  }
+  // manto de cabeça (Abraão) ou véu (Sara): calota + pano caindo até os ombros
+  if (penteado === 'manto' || penteado === 'veu') {
+    const veu = penteado === 'veu', mp = new THREE.MeshStandardMaterial({ color: corPano, roughness: 0.85, side: THREE.DoubleSide });
+    const touca = new THREE.Mesh(lisa(new THREE.SphereGeometry(1, 96, 64, 0, Math.PI * 2, 0, Math.PI * 0.52)), mp);
+    touca.scale.set(p.rx * 1.14, p.ry * 1.2, p.rz * 1.14); touca.rotation.x = veu ? -0.5 : -0.38; g.add(touca);
+    // pano: cilindro aberto na frente, alargando para baixo (atrás e dos lados do rosto)
+    const pano = new THREE.Mesh(new THREE.CylinderGeometry(p.rx * 1.13, p.rx * 1.45, 2.0, 96, 8, true, Math.PI * 0.36, Math.PI * 1.28), mp); // aberto na frente (rosto)
+    pano.position.set(0, -0.55, -0.06); pano.scale.z = 0.92; g.add(pano);
+    if (!veu) { // faixa (agal)
+      const faixa = new THREE.Mesh(new THREE.TorusGeometry(1, 0.07, 16, 96), matSimples('#4a2c18', 0.6));
+      faixa.scale.set(p.rx * 1.16, p.rz * 1.16, 1); faixa.rotation.x = Math.PI / 2 - 0.25; faixa.position.y = 0.5; g.add(faixa);
+    }
+  }
+  // barba (opcional): volume grande e macio sob o queixo + bigode
+  if (barba) {
+    const mb = matCabelo(barba);
+    const corpoBarba = new THREE.Mesh(lisa(new THREE.SphereGeometry(1, 96, 64)), mb);
+    corpoBarba.scale.set(p.rx * 0.82, 0.78, 0.55); corpoBarba.position.set(0, -0.98, 0.42); g.add(corpoBarba);
+    for (const l of [-1, 1]) {
+      mecha([[l * 0.85, -0.2, 0.35], [l * 0.8, -0.55, 0.5], [l * 0.5, -0.95, 0.6], [l * 0.2, -1.3, 0.55]], 0.2, 0.12, 0.6, 1.0, 0);
+      const big = new THREE.Mesh(tubo([V(l * 0.04, p.bocaY + 0.14, p.rz * 0.98), V(l * 0.22, p.bocaY + 0.12, p.rz * 0.93), V(l * 0.38, p.bocaY + 0.0, p.rz * 0.84)], 0.09, 0.05, { achatar: 0.6 }), mb);
+      g.add(big);
+    }
   }
   g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
   return g;

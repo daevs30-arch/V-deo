@@ -174,13 +174,38 @@ function sdfPeitilho(pr, J, tronco) { // macacão: peitilho na frente
   return (x, y, z) => smax(smax(tronco(x, y, z) - 0.1, smax(J.yQuadril + 0.2 - y, y - (J.yQuadril + pr.tronco * 0.62), 0.08), 0.08),
     smax(0.05 - z, Math.abs(x) - pr.troncoR[0] * 0.62, 0.08), 0.08);
 }
-function criarSaia(pr, J, cor) {
-  const yTopo = J.yQuadril + 0.62, yBase = J.yQuadril * 0.57, w = pr.troncoR[0] / 0.7;
-  const pts = [new THREE.Vector2(1.36 * w, yBase - 0.02)];
-  for (let i = 0; i <= 24; i++) { const t = i / 24; pts.push(new THREE.Vector2((1.32 - 0.56 * Math.pow(t, 1.6) + 0.05 * Math.sin(t * Math.PI)) * w, THREE.MathUtils.lerp(yBase, yTopo, t))); }
+function criarSaia(pr, J, cor, longa = false) {
+  // longa = túnica até os tornozelos (mais reta); senão saia em sino até o joelho
+  const yTopo = J.yQuadril + 0.62, yBase = longa ? pr.rPerna * 0.9 : J.yQuadril * 0.57, w = pr.troncoR[0] / 0.7;
+  const r0 = longa ? 1.12 : 1.32, rr = longa ? 0.34 : 0.56;
+  const pts = [new THREE.Vector2((r0 + 0.04) * w, yBase - 0.02)];
+  for (let i = 0; i <= 24; i++) { const t = i / 24; pts.push(new THREE.Vector2((r0 - rr * Math.pow(t, 1.6) + 0.05 * Math.sin(t * Math.PI)) * w, THREE.MathUtils.lerp(yBase, yTopo, t))); }
   const g = new THREE.LatheGeometry(pts, 128); g.computeVertexNormals();
   const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: cor, roughness: 0.75, side: THREE.DoubleSide, flatShading: false }));
   m.scale.z = 0.86; m.position.y = -J.pelve.y; return m; // preso ao osso do quadril
+}
+function criarCapa(pr, J, cor) {
+  const w = pr.troncoR[0] / 0.7, y0 = pr.rPerna * 0.8, y1 = J.peito.y + 0.2, pts = [];
+  for (let i = 0; i <= 24; i++) { const t = i / 24; pts.push(new THREE.Vector2((1.22 - 0.42 * Math.pow(t, 1.3)) * w + (t > 0.85 ? -(t - 0.85) * 2.2 : 0), THREE.MathUtils.lerp(y0, y1, t))); }
+  const g = new THREE.LatheGeometry(pts, 128, Math.PI * 0.2, Math.PI * 1.6); g.computeVertexNormals(); // abertura na frente
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: cor, roughness: 0.85, side: THREE.DoubleSide }));
+  m.scale.z = 0.9; m.position.y = -J.tronco.y; return m; // preso à coluna
+}
+function criarCajado(J) {
+  const g = new THREE.Group(), mat = matSimples('#7a4c26', 0.75), alt = J.yPescoco + 1.8;
+  const vara = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, alt, 8, 16), mat); vara.position.y = alt * 0.5 - J.yQuadril * 0.62; g.add(vara);
+  const gancho = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.07, 12, 32, Math.PI * 1.15), mat);
+  gancho.position.set(-0.28, vara.position.y + alt / 2, 0); g.add(gancho);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g;
+}
+function criarBebeColo() {
+  const g = new THREE.Group();
+  const manta = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), matRoupa('#f6eedc')); manta.scale.set(0.95, 0.5, 0.55); g.add(manta);
+  const dobra = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.12, 16, 48), matRoupa('#efe3c8')); dobra.position.set(-0.55, 0.12, 0.05); dobra.rotation.y = Math.PI / 2; g.add(dobra);
+  const cab = criarCabeca({ idade: 'bebe', pele: '#f2c7a8', corOlhos: '#5a3418', semPescoco: true }); cab.userData.rosto({ expressao: 'feliz', piscar: 1 });
+  cab.scale.setScalar(0.42); cab.position.set(-0.6, 0.2, 0.2); cab.rotation.set(0, 0.5, 0.35); g.add(cab);
+  g.userData.rosto = cab.userData.rosto;
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g;
 }
 function criarTenis(cor, escala) {
   const g = new THREE.Group(); g.scale.setScalar(escala);
@@ -224,13 +249,16 @@ export function createCharacter(params = {}) {
   const larg = pr.ombro[0] + pr.braco[0] + 0.6;
   pele(corpo, caixa(-0.1, altura, larg, 1.3), res, matPele(params.pele || '#f2c09c'));
   const corRoupa = params.corRoupa || '#4aa3df', corCalca = params.corCalca || '#3a4f9a';
-  const cintura = roupa === 'vestido' ? J.yQuadril + 0.05 : J.yQuadril + 0.3;
+  const vestidoLongo = roupa === 'vestido' || roupa === 'tunica';
+  const cintura = vestidoLongo ? J.yQuadril + 0.05 : J.yQuadril + 0.3;
   pele(sdfCamiseta(pr, J, tronco, cintura), caixa(J.yQuadril - 0.2, J.yPescoco + 0.4, pr.ombro[0] + 0.9, 1.3), res, matRoupa(corRoupa), pecasManga); // a manga acompanha o ombro
-  if (roupa === 'vestido') ossos.quadril.add(criarSaia(pr, J, corRoupa));
-  else {
-    const longa = roupa === 'macacao', yBarra = longa ? pr.rPerna + 0.25 : J.yQuadril * 0.65;
+  if (vestidoLongo) {
+    ossos.quadril.add(criarSaia(pr, J, corRoupa, roupa === 'tunica' || !!params.saiaLonga));
+    if (params.capa) ossos.coluna.add(criarCapa(pr, J, params.capa));
+  } else {
+    const longa = roupa === 'macacao' || !!params.calcaLonga, yBarra = longa ? pr.rPerna + 0.25 : J.yQuadril * 0.65;
     pele(sdfCalca(pr, J, tronco, yBarra), caixa(yBarra - 0.2, J.yQuadril + 0.7, pr.quadrilX + 0.9, 1.3), Math.round(res * 0.9), matRoupa(corCalca), pecasT);
-    if (longa) {
+    if (roupa === 'macacao') {
       pele(sdfPeitilho(pr, J, tronco), caixa(J.yQuadril, J.yQuadril + pr.tronco * 0.7, pr.troncoR[0] + 0.3, 1.3), Math.round(res * 0.8), matRoupa(corCalca), pecasT);
       for (const l of [-1, 1]) { // alças
         const pts = [V(l * 0.32, J.yQuadril + pr.tronco * 0.6, pr.troncoR[2] * 0.95), V(l * 0.36, J.peito.y + 0.15, pr.troncoR[2] * 0.6), V(l * 0.38, J.peito.y + 0.25, 0), V(l * 0.33, J.yQuadril + pr.tronco * 0.6, -pr.troncoR[2] * 0.95)];
@@ -250,6 +278,13 @@ export function createCharacter(params = {}) {
   cab.position.set(0, J.yPescoco + 1.12 * (pr.cabeca / 0.9) - J.cabeca.y, 0.02);
   if (params.oculos) cab.add(criarOculos(rosto.userData.p, params.oculos));
   ossos.cabeca.add(cab);
+  if (params.faixa) { // faixa na cintura (túnica)
+    const f = new THREE.Mesh(new THREE.TorusGeometry(pr.troncoR[0] * 1.08, 0.1, 16, 96), matRoupa(params.faixa));
+    f.rotation.x = Math.PI / 2; f.scale.y = 0.86; f.position.y = J.yQuadril + 0.55 - J.pelve.y; ossos.quadril.add(f);
+  }
+  let cajado = null, bebe = null;
+  if (params.cajado) { cajado = criarCajado(J); cajado.position.copy(J.bracoD.d2.clone().multiplyScalar(0.22)); ossos.maoD.add(cajado); }
+  if (params.bebe) { bebe = criarBebeColo(); bebe.position.set(0, -0.55, pr.troncoR[2] + 0.45); ossos.peito.add(bebe); }
 
   // ---------- pose (gira ossos) ----------
   const base = Object.fromEntries(lista.map((b) => [b.name, b.position.clone()]));
@@ -266,9 +301,15 @@ export function createCharacter(params = {}) {
       const solta = apoio !== 0 && l !== apoio;
       cx.rotation.set(solta ? -0.32 : 0, solta ? l * 0.4 : 0, -ossos.quadril.rotation.z + (solta ? l * 0.12 : 0));
       jo.rotation.x = solta ? 0.55 : 0;
+      if (P.passo != null) { // ciclo de caminhada: coxas alternadas, joelho dobra na passagem
+        const f = P.passo + (l < 0 ? 0 : Math.PI);
+        cx.rotation.set(-0.42 * Math.sin(f), 0, -ossos.quadril.rotation.z);
+        jo.rotation.x = 0.7 * Math.max(0, Math.sin(f + Math.PI / 2)) * (Math.sin(f) < 0 ? 1 : 0.35);
+      }
       to.rotation.set(-(cx.rotation.x + jo.rotation.x), 0, 0);
       // braços: valores relativos à pose de descanso (abre = levantar para o lado, frente, dobra)
-      const b = P['braco' + n] || {};
+      const b = { ...(P['braco' + n] || {}) };
+      if (P.passo != null && !P['braco' + n]) b.frente = 0.3 * Math.sin(P.passo + (l < 0 ? Math.PI : 0)); // braços balançam ao andar
       ossos['ombro' + n].rotation.set(-(b.frente || 0), 0, l * (b.abre || 0));
       ossos['cotovelo' + n].rotation.set(-(b.dobra || 0), 0, l * (b.aceno || 0));
     }
@@ -277,6 +318,7 @@ export function createCharacter(params = {}) {
     let min = Infinity; const w = new THREE.Vector3();
     for (const n of ['E', 'D']) { ossos['tornozelo' + n].getWorldPosition(w); personagem.worldToLocal(w); min = Math.min(min, w.y); }
     raiz.position.y = (pr.rPerna + 0.04) - min;
+    if (P.passo != null) ossos.quadril.position.y += 0.05 * Math.abs(Math.cos(P.passo));
   }
 
   // ---------- animações ----------
@@ -289,7 +331,7 @@ export function createCharacter(params = {}) {
     if (opts.acenar) P.bracoD = { abre: 1.0, frente: 0.25, dobra: 0.1, aceno: 1.25 + 0.35 * Math.sin(t * 9) };
     if (opts.palmas) {                                                  // bater palmas no tempo
       const junta = Math.pow(Math.cos(fase * Math.PI), 8);
-      for (const n of ['E', 'D']) P['braco' + n] = { ...(P['braco' + n] || {}), frente: 0.5, abre: -0.26 + 0.16 * (1 - junta), dobra: 1.15 + 0.2 * junta };
+      for (const n of ['E', 'D']) P['braco' + n] = { frente: 0.62, abre: -0.36, dobra: 0.85, aceno: -(0.55 + 0.4 * junta) };
     }
     pose(P);
     // piscar automático (a cada ~3,5 s, irregular)
@@ -297,7 +339,7 @@ export function createCharacter(params = {}) {
     rosto.userData.rosto({ expressao: opts.expressao || 'feliz', piscar, visema: opts.visema || null, fala: opts.fala || 0 });
   }
 
-  personagem.userData = { params, pose, animar, ossos, rosto, cabecaGrupo: cab, expressao: (e) => rosto.userData.rosto(e) };
+  personagem.userData = { params, pose, animar, ossos, rosto, cabecaGrupo: cab, cajado, bebe, expressao: (e) => rosto.userData.rosto(e) };
   pose(params.pose || {});
   return personagem;
 }
@@ -306,8 +348,13 @@ export function createCharacter(params = {}) {
 function criarOculos(p, cor = '#141011') {
   const g = new THREE.Group(), m = matSimples(cor, 0.35);
   for (const l of [-1, 1]) {
-    const aro = new THREE.Mesh(new THREE.TorusGeometry(p.olhoR * 1.25, 0.035, 16, 64), m);
-    aro.scale.set(1.15, 0.95, 1); aro.position.set(l * p.olhoX, p.olhoY, p.rz * 1.02); aro.rotation.y = l * 0.12; g.add(aro);
+    // armação retangular arredondada
+    const forma = new THREE.Shape(), a = p.olhoR * 1.32, b = p.olhoR * 1.05, r = 0.12;
+    forma.moveTo(-a + r, -b); forma.lineTo(a - r, -b); forma.quadraticCurveTo(a, -b, a, -b + r); forma.lineTo(a, b - r); forma.quadraticCurveTo(a, b, a - r, b);
+    forma.lineTo(-a + r, b); forma.quadraticCurveTo(-a, b, -a, b - r); forma.lineTo(-a, -b + r); forma.quadraticCurveTo(-a, -b, -a + r, -b);
+    const pts3 = forma.getSpacedPoints(96).map((v) => new THREE.Vector3(v.x, v.y, 0));
+    const aro = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts3, true), 128, 0.045, 10, true), m);
+    aro.position.set(l * p.olhoX, p.olhoY, p.rz * 1.02); aro.rotation.y = l * 0.12; g.add(aro);
     const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.9, 12), m);
     haste.rotation.x = Math.PI / 2; haste.position.set(l * (p.olhoX + p.olhoR * 1.35), p.olhoY + 0.05, p.rz * 0.55); g.add(haste);
   }
@@ -317,6 +364,7 @@ function criarOculos(p, cor = '#141011') {
 
 // poses prontas (cada criança diferente)
 export const POSES = {
+  colo: { bracoE: { frente: 0.75, abre: -0.3, dobra: 1.2, aceno: -0.5 }, bracoD: { frente: 0.6, abre: -0.32, dobra: 1.35, aceno: -0.55 }, cabecaFrente: 0.18, cabecaInclina: 0.12 },
   menina: { apoio: 1, cabecaInclina: 0.14, cabecaGira: 0.1, bracoE: { frente: 0.12, dobra: 0.15 }, bracoD: { abre: 0.02 } },
   menino: { apoio: -1, cabecaInclina: -0.14, cabecaGira: -0.12, bracoE: { abre: 0.02 }, bracoD: { frente: 0.15, dobra: 0.2 } },
 };

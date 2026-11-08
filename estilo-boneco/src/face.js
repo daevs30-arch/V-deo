@@ -261,6 +261,9 @@ export function criarCabeca(params) {
     grupo.add(piv); piv.userData.y0 = cy; piv.userData.l = l; return piv;
   });
   const boca = criarBoca(cabeca, p, params.corLabio || '#c25a5a'); grupo.add(boca);
+  // pinta perto da boca (opcional) e brincos de pérola (opcional)
+  if (params.pinta) { const px = 0.3, py = p.bocaY - 0.02; const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 16, 12), matSimples('#3a1a10', 0.6)); m.position.set(px, py, naPele(px, py) + 0.005); grupo.add(m); }
+  if (params.brincos) for (const l of [-1, 1]) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.07, 24, 16), matSimples('#f6f2f4', 0.25)); m.position.set(l * p.rx * 0.97, -0.3, 0.02); grupo.add(m); }
 
   // controle do rosto: valores de expressão + boca de fala opcional
   grupo.userData = {

@@ -6,6 +6,7 @@ import { criarCabelo } from './hair.js';
 import { matRoupa } from './materials.js';
 import { createCharacter, POSES } from './character.js';
 import { folhaDeModelo } from './folha.js';
+import { ELENCO } from './elenco.js';
 
 const q = new URLSearchParams(location.search);
 // a folha de modelo usa uma tela mais alta
@@ -89,6 +90,14 @@ function testeCorpo(vista = 'frente') {
 const teste = q.get('test') || 'rosto';
 if (teste === 'corpo') testeCorpo(q.get('vista') || 'frente');
 if (teste === 'anim') { testeCorpo(); P.scene.children.filter((o) => o.userData && o.userData.animar).forEach((o, i) => o.userData.animar(parseFloat(q.get('t') || '0.3'), { acenar: i === 0, palmas: i === 1, pose: i === 0 ? POSES.menina : POSES.menino })); }
+if (teste === 'palmas') { testeCorpo(); const b = P.scene.children.filter((o) => o.userData && o.userData.animar); b.forEach((o) => o.userData.animar(parseFloat(q.get('t') || '0'), { palmas: true, balancar: false })); P.camera.position.set(1.85, 3.3, 7.5); P.camera.lookAt(1.85, 3.0, 0); }
+if (teste === 'andar') { testeCorpo(); P.scene.children.filter((o) => o.userData && o.userData.pose).forEach((o, i) => { o.userData.pose({ passo: parseFloat(q.get('f') || '1.2') + i }); o.rotation.y = 0.9; }); }
+if (teste === 'elenco') {
+  P.scene.background = fundo('#a9dcff', '#fff0d6'); chao();
+  const lista = [['professora', -4.2, POSES.menina], ['abraao', 0, {}], ['sara', 4.2, POSES.colo]];
+  for (const [n, x, ps] of lista) { const c = createCharacter({ ...ELENCO[n], pose: ps }); c.position.x = x; c.rotation.y = -x * 0.05; c.userData.expressao({ expressao: 'feliz' }); P.scene.add(c); blob(x, 0.1, 1.6); }
+  P.camera.position.set(0, 5.6, 26); P.camera.lookAt(0, 5.2, 0); P.luzes.chave.target.position.set(0, 4, 0); P.scene.add(P.luzes.chave.target);
+}
 if (teste === 'braco') { testeCorpo(); P.camera.position.set(3.2, 2.6, 4.2); P.camera.lookAt(2.8, 2.2, 0); }
 if (teste === 'rosto') testeRosto();
 if (teste === 'model') { P.scene.background = fundo('#cfe8ff', '#fff4e4'); folhaDeModelo(P, { semente: parseInt(q.get('seed') || '7', 10), interativo: !q.has('render') }); }
