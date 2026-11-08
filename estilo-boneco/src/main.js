@@ -5,9 +5,11 @@ import { criarCabeca, EXPRESSOES } from './face.js';
 import { criarCabelo } from './hair.js';
 import { matRoupa } from './materials.js';
 import { createCharacter, POSES } from './character.js';
+import { folhaDeModelo } from './folha.js';
 
-const P = criarPalco(document.getElementById('c'));
 const q = new URLSearchParams(location.search);
+// a folha de modelo usa uma tela mais alta
+const P = q.get('test') === 'model' ? criarPalco(document.getElementById('c'), 1920, 1600) : criarPalco(document.getElementById('c'));
 
 function fundo(c1, c2) {
   const cv = document.createElement('canvas'); cv.width = 16; cv.height = 256;
@@ -82,12 +84,14 @@ function testeCorpo(vista = 'frente') {
   b.position.set(1.85, 0, 0); b.rotation.y = ang; b.userData.expressao({ expressao: 'rindo' }); P.scene.add(b); blob(1.85, 0.1);
   P.luzes.chave.target.position.set(0, 2, 0); P.scene.add(P.luzes.chave.target);
   P.camera.position.set(0, 3.1, 14.0); P.camera.lookAt(0, 3.05, 0);
-  window.alturas = [a, b].map((o) => { const bx = new THREE.Box3().setFromObject(o.userData.cabeca); const t = new THREE.Box3().setFromObject(o); return [(t.max.y - t.min.y).toFixed(2), ((bx.max.y - bx.min.y) / (t.max.y - t.min.y)).toFixed(3)]; });
+  window.alturas = [a, b].map((o) => { const bx = new THREE.Box3().setFromObject(o.userData.cabecaGrupo); const t = new THREE.Box3().setFromObject(o); return [(t.max.y - t.min.y).toFixed(2), ((bx.max.y - bx.min.y) / (t.max.y - t.min.y)).toFixed(3)]; });
 }
 const teste = q.get('test') || 'rosto';
 if (teste === 'corpo') testeCorpo(q.get('vista') || 'frente');
+if (teste === 'anim') { testeCorpo(); P.scene.children.filter((o) => o.userData && o.userData.animar).forEach((o, i) => o.userData.animar(parseFloat(q.get('t') || '0.3'), { acenar: i === 0, palmas: i === 1, pose: i === 0 ? POSES.menina : POSES.menino })); }
 if (teste === 'braco') { testeCorpo(); P.camera.position.set(3.2, 2.6, 4.2); P.camera.lookAt(2.8, 2.2, 0); }
 if (teste === 'rosto') testeRosto();
+if (teste === 'model') { P.scene.background = fundo('#cfe8ff', '#fff4e4'); folhaDeModelo(P, { semente: parseInt(q.get('seed') || '7', 10), interativo: !q.has('render') }); }
 if (teste === 'close') testeClose();
 P.render();
 window.pronto = true;
