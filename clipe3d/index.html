@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Abraão Confiou — clipe 3D</title>
+<style>
+  @font-face { font-family: 'Fredoka'; font-weight: 600; src: url(../clipe/fontes/fredoka-latin-600-normal.woff2); }
+  @font-face { font-family: 'Fredoka'; font-weight: 700; src: url(../clipe/fontes/fredoka-latin-700-normal.woff2); }
+  @font-face { font-family: 'Baloo'; font-weight: 800; src: url(../clipe/fontes/baloo-2-latin-800-normal.woff2); }
+  html, body { margin: 0; background: #000; }
+  #c3d { display: none; }
+  #saida { display: block; width: 100vw; height: auto; }
+</style>
+<script type="importmap">{"imports":{"three":"../estilo-boneco/node_modules/three/build/three.module.js","three/addons/":"../estilo-boneco/node_modules/three/examples/jsm/"}}</script>
+</head>
+<body>
+<canvas id="c3d" width="1920" height="1080"></canvas>
+<canvas id="saida" width="1920" height="1080"></canvas>
+<script src="../clipe/dados/analise.js"></script>
+<script src="../clipe/dados/letra.js"></script>
+<script src="../clipe/js/base.js"></script>
+<script src="js/legenda.js"></script>
+<script>
+  // funções do overlay 2D usadas pelo módulo 3D
+  window.cantando = cantando; window.nivelVoz = nivelVoz; window.linhaEm = linhaEm;
+  // camada de texto por cima do 3D (legenda karaokê, título, palavras grandes, cartão final)
+  window.overlay = function (ctx, t, cenaLocal) {
+    legenda(ctx, t);
+    if (t < 6.6) { titulo(ctx, t, 0.7); if (t > 2.4) { ctx.save(); ctx.globalAlpha = smooth((t - 2.4) * 2); textoContorno(ctx, 'Uma história de fé', W / 2, 560, 58, '#ffffff', '#5a2a7a', 0.16, 'Fredoka'); ctx.restore(); } }
+    if (t >= 6.6 && t < 15.45) titulo(ctx, t, -3, 300, 140, 0.42);
+    const grandes = [[75.76, 'CONFIAR!', '#ff5a7a'], [78.28, 'CONFIAR!', '#ffb02a'], [81.1, 'ACREDITAR!', '#4ab0f0'], [82.7, 'ACREDITAR!', '#5fd0a0'],
+      [154.26, 'CONFIAR!', '#ff5a7a'], [156.96, 'CONFIAR!', '#ffb02a'], [159.5, 'ACREDITAR!', '#4ab0f0'], [160.88, 'ACREDITAR!', '#a07aff']];
+    grandes.forEach(([tp, txt, cor], i) => palavraGrande(ctx, t, tp, txt, 150 + (i % 2) * 20, cor, 165));
+    [[119.9, 'Confiar...'], [122.52, 'Confiar...'], [125.44, 'Acreditar...'], [127.0, 'Acreditar...']].forEach(([tp, txt]) => {
+      const tt = t - tp; if (tt < 0 || tt > 2.8) return;
+      ctx.save(); ctx.globalAlpha = Math.min(smooth(tt * 2), smooth((2.8 - tt) * 1.5)); ctx.shadowColor = '#ffd27a'; ctx.shadowBlur = 30;
+      textoContorno(ctx, txt, W / 2, 230 - tt * 12, 130, '#fff3c8', 'rgba(90,50,10,0.5)', 0.06, 'Fredoka'); ctx.restore();
+    });
+    if (t > 167.5) {
+      const k = smooth((t - 167.5) / 1.2);
+      ctx.fillStyle = `rgba(40,15,50,${0.55 * k})`; ctx.fillRect(0, 0, W, H);
+      titulo(ctx, t, 167.6, W / 2, 360, 0.95);
+      ctx.save(); ctx.globalAlpha = smooth((t - 168.4) * 1.5);
+      textoContorno(ctx, '“Olhe para o céu e conte as estrelas...”', W / 2, 640, 54, '#ffffff', '#3a1f5a', 0.14, 'Fredoka');
+      textoContorno(ctx, 'Gênesis 15:5', W / 2, 715, 46, '#ffd84a', '#3a1f5a', 0.14, 'Fredoka'); ctx.restore();
+    }
+    // corte entre cenas: mergulho rápido; fade no começo e no fim
+    const dur = ANALISE.dur, f = Math.max(clamp(1 - t / 0.8), clamp((t - (dur - 1.2)) / 1.2), cenaLocal < 0.18 && t > 1 ? 0.35 * (1 - cenaLocal / 0.18) : 0);
+    if (f > 0) { ctx.fillStyle = `rgba(0,0,0,${f})`; ctx.fillRect(0, 0, W, H); }
+  };
+</script>
+<script type="module">
+  import { quadro3D, P } from './js/clipe.js';
+  const saida = document.getElementById('saida'), ctx = saida.getContext('2d');
+  await Promise.all([document.fonts.load('600 40px Fredoka'), document.fonts.load('700 40px Fredoka'), document.fonts.load('800 40px Baloo')]);
+  window.quadro = (t) => { const lt = quadro3D(t); ctx.drawImage(document.getElementById('c3d'), 0, 0); window.overlay(ctx, t, lt); };
+  window.quadroJPEG = (t, q) => { window.quadro(t); return saida.toDataURL('image/jpeg', q || 0.93); };
+  const p = new URLSearchParams(location.search);
+  if (p.has('t')) window.quadro(parseFloat(p.get('t')));
+  else if (!p.has('render')) { // pré-visualização com a música
+    const audio = new Audio('../clipe/musica.mp3'); document.body.onclick = () => (audio.paused ? audio.play() : audio.pause());
+    const loop = () => { window.quadro(audio.currentTime); requestAnimationFrame(loop); }; loop();
+  }
+  window.pronto = true;
+</script>
+</body>
+</html>
