@@ -1,0 +1,24 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Teste — rosto 3D</title>
+<style>html,body{margin:0;background:#000}canvas{display:block;width:100vw;height:auto}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body><canvas id="c"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { criarPalco, texturaFundo } from './js/palco.js';
+import { criarCabecaCrianca, matTecido, matPele } from './js/crianca3d.js';
+const P = criarPalco(document.getElementById('c'));
+P.scene.background = texturaFundo('#9fd8ff', '#ffe9c9');
+const kid = criarCabecaCrianca({});
+kid.position.set(0, 0, 0); kid.rotation.set(0.05, -0.12, 0.09); // cabeça inclinada ~5°
+P.scene.add(kid);
+// pescoço e ombros (camiseta amarela) só para o close
+const pesc = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.5, 48), matPele('#9a603e')); pesc.position.set(0, -1.05, -0.1); P.scene.add(pesc);
+const tronco = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), matTecido('#f2b632'));
+tronco.scale.set(1.0, 0.75, 0.75); tronco.position.set(0, -1.95, -0.15); tronco.castShadow = tronco.receiveShadow = true; P.scene.add(tronco);
+P.camera.position.set(0.35, 0.15, 7.2); P.camera.lookAt(0, -0.25, 0);
+const params = new URLSearchParams(location.search);
+kid.userData.set({ piscar: parseFloat(params.get('piscar') || 0), olhar: [0.15, 0.05], boca: parseFloat(params.get('boca') || 0.7) });
+if (params.has('semboca')) kid.children.forEach(c=>{ if (c.children.length===3 && c.children[1].material && c.children[1].material.stencilWrite) c.visible=false; }); if (params.has('semao')) P.gtao.enabled = false; if (params.has('direto')) P.renderer.render(P.scene, P.camera); else P.composer.render();
+window.pronto = true;
+</script></body></html>
