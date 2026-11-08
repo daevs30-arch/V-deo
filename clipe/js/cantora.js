@@ -20,7 +20,8 @@ function cantora(ctx, o) {
   const pe = (lado) => passo == null ? 0 : Math.sin(passo + (lado > 0 ? Math.PI : 0));
   for (const lado of [-1, 1]) sandalia(ctx, lado * 62 + pe(lado) * 24, -Math.max(0, pe(lado)) * 14, lado);
   // calça (cintura em -450): reaproveita a calça larga, achatada na vertical
-  ctx.save(); ctx.rotate((o.inclina || 0) * 0.25); ctx.scale(1.02, 0.75); calca(ctx, pe); ctx.restore();
+  ctx.save(); ctx.rotate((o.inclina || 0) * 0.25); ctx.scale(1.06, 0.6); calca(ctx, pe); ctx.restore();
+  ctx.translate(0, 90); // tronco desce (pernas mais curtas)
 
   ctx.save();
   ctx.translate(0, -440); ctx.rotate(o.inclina || 0); ctx.translate(0, 440);
@@ -131,7 +132,7 @@ function cabelosCantoraFrente(ctx) {
 
 function cabecaCantora(ctx, o) {
   ctx.save();
-  ctx.translate(0, -680); ctx.rotate(o.cabeca || 0); ctx.translate(0, 680);
+  ctx.translate(0, -660); ctx.rotate(o.cabeca || 0); ctx.scale(1.14, 1.14); ctx.translate(0, 676);
   cabelosCantoraTras(ctx);
   // orelhas + brincos de pérola
   for (const l of [-1, 1]) {

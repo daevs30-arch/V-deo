@@ -257,7 +257,7 @@ function crianca(ctx, o) {
   const P = c.pele;
   // perninhas e tênis
   for (const l of [-1, 1]) {
-    vol(ctx, () => membroPath(ctx, l * 30, -190, l * 32, -40, 23, 20), P.base, l * 30 - 24, -212, 48, 190, { sombra: 0.4 });
+    vol(ctx, () => membroPath(ctx, l * 32, -170, l * 34, -40, 28, 24), P.base, l * 32 - 28, -198, 56, 186, { sombra: 0.4 });
     vol(ctx, () => ctx.ellipse(l * 38, -22, 40, 24, 0, 0, TAU), '#ef5b52', l * 38 - 40, -46, 80, 48, { sombra: 0.4, luz: 0.4 });
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(l * 38, -6, 38, 8, 0, 0, Math.PI); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillRect(l * 38 - 12, -36, 24, 5);
@@ -271,8 +271,8 @@ function crianca(ctx, o) {
     vol(ctx, () => { ctx.moveTo(-72, -268); ctx.lineTo(72, -268); ctx.quadraticCurveTo(80, -200, 78, -160); ctx.lineTo(8, -160); ctx.lineTo(0, -200); ctx.lineTo(-8, -160); ctx.lineTo(-78, -160); ctx.quadraticCurveTo(-80, -200, -72, -268); }, c.corBaixo, -80, -268, 160, 108, { sombra: 0.4 });
   }
   // camiseta (barriguinha redonda)
-  const tor = [[-66, -250], [-74, -300], [-70, -342], [-36, -356], [0, -350], [36, -356], [70, -342], [74, -300], [66, -250], [0, -238]];
-  vol(ctx, () => curva(ctx, tor, true), c.camisa, -75, -356, 150, 118, { sombra: 0.42, luz: 0.3 });
+  const tor = [[-74, -250], [-86, -300], [-76, -342], [-36, -356], [0, -350], [36, -356], [76, -342], [86, -300], [74, -250], [0, -236]];
+  vol(ctx, () => curva(ctx, tor, true), c.camisa, -87, -356, 174, 120, { sombra: 0.42, luz: 0.3 });
   ctx.fillStyle = 'rgba(255,255,255,0.9)'; estrela(ctx, 0, -292, 20, 8);
 
   // braços
@@ -290,16 +290,16 @@ function crianca(ctx, o) {
     const ex = sx + l * Math.sin(a1) * 74, ey = sy + Math.cos(a1) * 74;
     const hx = ex + l * Math.sin(a2) * 66, hy = ey + Math.cos(a2) * 66;
     const v = (ax, ay, bx, by, ra, rb, cor) => vol(ctx, () => membroPath(ctx, ax, ay, bx, by, ra, rb), cor, Math.min(ax, bx) - ra, Math.min(ay, by) - ra, Math.abs(bx - ax) + ra * 2, Math.abs(by - ay) + ra * 2, { sombra: 0.38 });
-    v(ex, ey, hx, hy, 18, 16, P.base);
-    v(sx, sy, ex, ey, 20, 18, P.base);
+    v(ex, ey, hx, hy, 21, 19, P.base);
+    v(sx, sy, ex, ey, 23, 21, P.base);
     v(sx - l * 6, sy, sx + l * Math.sin(a1) * 34, sy + Math.cos(a1) * 34, 25, 23, c.camisa);
     const mx = hx + l * Math.sin(a2) * 12, my = hy + Math.cos(a2) * 12;
-    vol(ctx, () => ctx.arc(mx, my, 21, 0, TAU), P.base, mx - 21, my - 21, 42, 42, { sombra: 0.35 });
+    vol(ctx, () => ctx.arc(mx, my, 23, 0, TAU), P.base, mx - 23, my - 23, 46, 46, { sombra: 0.35 });
   }
 
   // cabeção (desenho antigo reescalado + rosto novo)
   ctx.save(); ctx.translate(0, -350); ctx.rotate(o.cabeca || 0); ctx.translate(0, 350);
-  ctx.translate(0, -478); ctx.scale(1.32, 1.32); ctx.translate(0, 640);
+  ctx.translate(0, -470); ctx.scale(1.5, 1.5); ctx.translate(0, 640);
   const cy = -640, cab = c.corCabelo;
   const gcab = lg(ctx, 0, cy - 130, 0, cy + 120, [tom(cab, 0.25), cab, tom(cab, -0.3)]);
   ctx.fillStyle = gcab;
@@ -312,9 +312,9 @@ function crianca(ctx, o) {
   }
   if (c.cabelo === 'cachos') for (let i = 0; i < 16; i++) { const a = Math.PI * (0.85 + i / 15 * 1.3), x = Math.cos(a) * 95, y = cy + Math.sin(a) * 95 + 5; vol(ctx, () => ctx.arc(x, y, 32, 0, TAU), cab, x - 32, y - 32, 64, 64, { sombra: 0.45, luz: 0.2, rim: false }); }
   // orelhas
-  for (const l of [-1, 1]) vol(ctx, () => ctx.ellipse(l * 90, cy + 12, 15, 20, 0, 0, TAU), P.base, l * 90 - 15, cy - 8, 30, 40, { sombra: 0.4 });
+  for (const l of [-1, 1]) vol(ctx, () => ctx.ellipse(l * 96, cy + 12, 15, 20, 0, 0, TAU), P.base, l * 96 - 15, cy - 8, 30, 40, { sombra: 0.4 });
   // rosto redondo
-  vol(ctx, () => ctx.ellipse(0, cy + 4, 92, 88, 0, 0, TAU), P.base, -92, cy - 84, 184, 176, { sombra: 0.32, luz: 0.32 });
+  vol(ctx, () => curva(ctx, [[0, cy - 86], [70, cy - 70], [98, cy - 10], [94, cy + 46], [56, cy + 86], [0, cy + 96], [-56, cy + 86], [-94, cy + 46], [-98, cy - 10], [-70, cy - 70]], true), P.base, -98, cy - 86, 196, 182, { sombra: 0.32, luz: 0.32 });
   suave(ctx, 7, () => { ctx.fillStyle = 'rgba(255,100,120,0.38)'; ctx.beginPath(); ctx.ellipse(-56, cy + 34, 17, 11, 0, 0, TAU); ctx.ellipse(56, cy + 34, 17, 11, 0, 0, TAU); ctx.fill(); });
   // cabelo da frente
   const frente = (fn) => vol(ctx, fn, cab, -100, cy - 115, 200, 140, { sombra: 0.4, luz: 0.3 });
@@ -329,12 +329,12 @@ function crianca(ctx, o) {
   // olhos enormes e brilhantes
   const menina = c.baixo === 'saia';
   for (const l of [-1, 1]) {
-    olhoGrande(ctx, l * 36, cy + 4, 21, 25, OLHOS_KIDS[o.tipo % 5], o.piscar || 0, o.olhar || [0, 0], menina, l);
+    olhoGrande(ctx, l * 38, cy + 8, 24, 28, OLHOS_KIDS[o.tipo % 5], o.piscar || 0, o.olhar || [0, 0], menina, l);
     ctx.strokeStyle = tom(cab, -0.2); ctx.lineWidth = 5; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(l * 22, cy - 32); ctx.quadraticCurveTo(l * 38, cy - 40, l * 54, cy - 32); ctx.stroke();
   }
-  narizFofo(ctx, 0, cy + 34, 7, P.base);
-  bocaFofa(ctx, 0, cy + 54, 17, o.boca || 0);
+  narizFofo(ctx, 0, cy + 38, 6, P.base);
+  bocaFofa(ctx, 0, cy + 58, 15, o.boca || 0);
   ctx.restore();
   ctx.restore();
 }

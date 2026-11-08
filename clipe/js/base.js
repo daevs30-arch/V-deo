@@ -74,13 +74,13 @@ function criarTexturas() {
   textura('jeans', 256, 256, (c, w, h) => {
     c.fillStyle = '#a3bcd6'; c.fillRect(0, 0, w, h);
     const r = rng(7);
-    for (let i = 0; i < 700; i++) { // marmorizado suave
-      const x = r() * w, y = r() * h, s = 3 + r() * 14;
-      c.fillStyle = r() < 0.6 ? `rgba(232,240,250,${0.06 + r() * 0.14})` : `rgba(80,115,165,${0.05 + r() * 0.1})`;
+    for (let i = 0; i < 160; i++) { // marmorizado bem suave
+      const x = r() * w, y = r() * h, s = 10 + r() * 24;
+      c.fillStyle = r() < 0.6 ? `rgba(232,240,250,${0.03 + r() * 0.06})` : `rgba(80,115,165,${0.02 + r() * 0.05})`;
       c.beginPath(); c.ellipse(x, y, s * 0.5, s, 0, 0, TAU); c.fill();
     }
-    for (let i = 0; i < 3000; i++) { // trama vertical
-      c.fillStyle = r() < 0.5 ? `rgba(40,70,120,${r() * 0.12})` : `rgba(255,255,255,${r() * 0.1})`;
+    for (let i = 0; i < 600; i++) { // trama vertical
+      c.fillStyle = r() < 0.5 ? `rgba(40,70,120,${r() * 0.05})` : `rgba(255,255,255,${r() * 0.05})`;
       c.fillRect(r() * w, r() * h, 1, 3 + r() * 6);
     }
   });
@@ -142,12 +142,19 @@ function tom(hex, k) { // k>0 clareia, k<0 escurece
 function vol(ctx, caminho, cor, x, y, w, h, op = {}) {
   ctx.save(); ctx.beginPath(); caminho(); ctx.fillStyle = cor; ctx.fill(); ctx.clip();
   const cx = x + w / 2, cy = y + h / 2, R = Math.max(w, h) * 0.72;
-  ctx.fillStyle = rg(ctx, cx + w * 0.06, cy + h * 0.06, R, [[0, 'rgba(0,0,0,0)'], [0.5, 'rgba(0,0,0,0)'], [1, `rgba(50,15,40,${op.sombra ?? 0.38})`]]);
+  ctx.fillStyle = rg(ctx, cx + w * 0.08, cy + h * 0.08, R, [[0, 'rgba(0,0,0,0)'], [0.45, 'rgba(0,0,0,0)'], [1, `rgba(60,15,40,${(op.sombra ?? 0.38) * 1.25})`]]);
   ctx.fillRect(x - w, y - h, w * 3, h * 3);
-  ctx.fillStyle = rg(ctx, x + w * 0.34, y + h * 0.26, Math.max(w, h) * 0.62, [`rgba(255,255,255,${op.luz ?? 0.32})`, 'rgba(255,255,255,0)']);
+  const L = (op.luz ?? 0.32) * 1.35;
+  ctx.fillStyle = rg(ctx, x + w * 0.36, y + h * 0.28, Math.max(w, h) * 0.66, [`rgba(255,250,240,${L})`, `rgba(255,250,240,${L * 0.35})`, 'rgba(255,255,255,0)']);
+  ctx.fillRect(x - w, y - h, w * 3, h * 3);
+  if (op.brilho !== false) { // reflexo especular (aparência lisa, de 3D)
+    ctx.fillStyle = rg(ctx, x + w * 0.3, y + h * 0.2, Math.min(w, h) * 0.22, ['rgba(255,255,255,0.55)', 'rgba(255,255,255,0)']);
+    ctx.fillRect(x - w, y - h, w * 3, h * 3);
+  }
+  ctx.fillStyle = rg(ctx, x + w * 0.5, y + h * 1.05, Math.max(w, h) * 0.5, ['rgba(255,170,120,0.18)', 'rgba(255,170,120,0)']);
   ctx.fillRect(x - w, y - h, w * 3, h * 3);
   if (op.rim !== false) {
-    ctx.fillStyle = rg(ctx, x + w * 1.05, y + h * 0.9, Math.max(w, h) * 0.45, ['rgba(255,240,220,0.22)', 'rgba(255,240,220,0)']);
+    ctx.fillStyle = rg(ctx, x + w * 1.02, y + h * 0.75, Math.max(w, h) * 0.42, ['rgba(255,245,230,0.35)', 'rgba(255,245,230,0)']);
     ctx.fillRect(x - w, y - h, w * 3, h * 3);
   }
   ctx.restore();
@@ -158,12 +165,13 @@ function olhoGrande(ctx, x, y, w, h, cor, piscar = 0, olhar = [0, 0], cilios = f
   ctx.save();
   ctx.beginPath(); ctx.ellipse(x, y, w, hh, 0, 0, TAU); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.clip();
   ctx.fillStyle = lg(ctx, 0, y - h, 0, y, ['rgba(110,80,110,0.4)', 'rgba(110,80,110,0)']); ctx.fillRect(x - w, y - h, w * 2, h);
-  const ir = w * 0.74, ix = x + olhar[0] * w * 0.22, iy = y + h * 0.08 + olhar[1] * h * 0.2;
-  ctx.fillStyle = rg(ctx, ix, iy + ir * 0.25, ir, [tom(cor, 0.45), cor, tom(cor, -0.5)]);
+  const ir = w * 0.8, ix = x + olhar[0] * w * 0.2, iy = y + h * 0.1 + olhar[1] * h * 0.2;
+  ctx.fillStyle = rg(ctx, ix, iy + ir * 0.35, ir, [tom(cor, 0.6), tom(cor, 0.15), cor, tom(cor, -0.55)]);
   ctx.beginPath(); ctx.arc(ix, iy, ir, 0, TAU); ctx.fill();
   ctx.strokeStyle = tom(cor, -0.6); ctx.lineWidth = ir * 0.08; ctx.stroke();
   ctx.fillStyle = '#120806'; ctx.beginPath(); ctx.arc(ix, iy, ir * 0.47, 0, TAU); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ix + ir * 0.3, iy - ir * 0.36, ir * 0.3, ir * 0.26, -0.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ix + ir * 0.28, iy - ir * 0.34, ir * 0.36, ir * 0.3, -0.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(ix + ir * 0.55, iy + ir * 0.1, ir * 0.1, 0, TAU); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(ix - ir * 0.36, iy + ir * 0.38, ir * 0.13, 0, TAU); ctx.fill();
   ctx.restore();
   ctx.strokeStyle = '#2a1410'; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2.5, w * 0.17);

@@ -40,7 +40,7 @@ function poseCantora(t, tipo) {
 }
 function desenhaCantora(ctx, t, x, y, s, tipo, extra = {}) {
   const p = poseCantora(t, tipo);
-  cantora(ctx, { x, y, s, t, boca: bocaVoz(t), piscar: piscar(t, 1), olhar: [Math.sin(t * 0.7) * 0.3, 0], ...p, ...extra });
+  cantora(ctx, { x, y, s: s * 1.12, t, boca: bocaVoz(t), piscar: piscar(t, 1), olhar: [Math.sin(t * 0.7) * 0.3, 0], ...p, ...extra });
 }
 
 // ---------- grupo de crianças ----------
@@ -124,7 +124,7 @@ function legenda(ctx, t) {
 }
 
 // ================= CENAS =================
-const KIDS_FESTA = [[330, 1010, 0.62, 0], [610, 1040, 0.66, 1], [1310, 1040, 0.66, 2], [1590, 1010, 0.62, 3]];
+const KIDS_FESTA = [[290, 1010, 0.62, 0], [560, 1040, 0.66, 1], [1360, 1040, 0.66, 2], [1630, 1010, 0.62, 3]];
 
 const CENAS = [
   { t0: 0, t1: 6.6, fn: (ctx, t) => { // abertura: amanhecer + título
@@ -189,7 +189,7 @@ const CENAS = [
     ceu(ctx, 'dia', t, 1500, 200, 80); prado(ctx, 'dia', t, 0);
     ctx.fillStyle = 'rgba(255,250,235,0.25)'; ctx.fillRect(0, 0, W, H);
     raiosCeu(ctx, 960, -100, t, 0.5);
-    camera(ctx, 1 + lt * 0.02, W / 2, 400, () => desenhaCantora(ctx, t, 960, 1720, 1.42, t < 46.4 ? 'coracao' : 'abertos'));
+    camera(ctx, 1 + lt * 0.02, W / 2, 400, () => desenhaCantora(ctx, t, 960, 1360, 1.15, t < 46.4 ? 'coracao' : 'abertos'));
     brilhos(ctx, t, 16, [200, 100, 1500, 700], 9);
   } },
   { t0: 49.85, t1: 61.55, fn: (ctx, t, lt) => festa(ctx, t, lt, { fiel: 58.8 }) },
