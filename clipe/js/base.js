@@ -131,3 +131,73 @@ function batida(t) { // 1 logo na batida, decai até a próxima
   const fase = clamp((t - p) / (q - p));
   return { fase, pulso: Math.pow(1 - fase, 3), idx: lo };
 }
+
+// ---------- estilo "fofo com volume" (cabeção, olhos grandes, sombreado macio) ----------
+function tom(hex, k) { // k>0 clareia, k<0 escurece
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const f = (c) => Math.round(k >= 0 ? c + (255 - c) * k : c * (1 + k));
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+// Preenche um caminho com aparência de volume: borda escura, luz em cima-esquerda e brilho de recorte.
+function vol(ctx, caminho, cor, x, y, w, h, op = {}) {
+  ctx.save(); ctx.beginPath(); caminho(); ctx.fillStyle = cor; ctx.fill(); ctx.clip();
+  const cx = x + w / 2, cy = y + h / 2, R = Math.max(w, h) * 0.72;
+  ctx.fillStyle = rg(ctx, cx + w * 0.06, cy + h * 0.06, R, [[0, 'rgba(0,0,0,0)'], [0.5, 'rgba(0,0,0,0)'], [1, `rgba(50,15,40,${op.sombra ?? 0.38})`]]);
+  ctx.fillRect(x - w, y - h, w * 3, h * 3);
+  ctx.fillStyle = rg(ctx, x + w * 0.34, y + h * 0.26, Math.max(w, h) * 0.62, [`rgba(255,255,255,${op.luz ?? 0.32})`, 'rgba(255,255,255,0)']);
+  ctx.fillRect(x - w, y - h, w * 3, h * 3);
+  if (op.rim !== false) {
+    ctx.fillStyle = rg(ctx, x + w * 1.05, y + h * 0.9, Math.max(w, h) * 0.45, ['rgba(255,240,220,0.22)', 'rgba(255,240,220,0)']);
+    ctx.fillRect(x - w, y - h, w * 3, h * 3);
+  }
+  ctx.restore();
+}
+// Olho grande e brilhante.
+function olhoGrande(ctx, x, y, w, h, cor, piscar = 0, olhar = [0, 0], cilios = false, lado = 1) {
+  const hh = h * (1 - piscar) + 1;
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(x, y, w, hh, 0, 0, TAU); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.clip();
+  ctx.fillStyle = lg(ctx, 0, y - h, 0, y, ['rgba(110,80,110,0.4)', 'rgba(110,80,110,0)']); ctx.fillRect(x - w, y - h, w * 2, h);
+  const ir = w * 0.74, ix = x + olhar[0] * w * 0.22, iy = y + h * 0.08 + olhar[1] * h * 0.2;
+  ctx.fillStyle = rg(ctx, ix, iy + ir * 0.25, ir, [tom(cor, 0.45), cor, tom(cor, -0.5)]);
+  ctx.beginPath(); ctx.arc(ix, iy, ir, 0, TAU); ctx.fill();
+  ctx.strokeStyle = tom(cor, -0.6); ctx.lineWidth = ir * 0.08; ctx.stroke();
+  ctx.fillStyle = '#120806'; ctx.beginPath(); ctx.arc(ix, iy, ir * 0.47, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ix + ir * 0.3, iy - ir * 0.36, ir * 0.3, ir * 0.26, -0.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(ix - ir * 0.36, iy + ir * 0.38, ir * 0.13, 0, TAU); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = '#2a1410'; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2.5, w * 0.17);
+  ctx.beginPath(); ctx.ellipse(x, y, w * 1.02, hh, 0, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+  if (cilios) {
+    ctx.lineWidth = Math.max(2, w * 0.12);
+    for (let i = 0; i < 2; i++) {
+      const a = Math.PI * (lado > 0 ? 1.82 + i * 0.12 : 1.18 - i * 0.12);
+      const px = x + Math.cos(a) * w, py = y + Math.sin(a) * hh;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + lado * w * 0.32, py - w * 0.22 - i * 3); ctx.stroke();
+    }
+  }
+}
+// Boca grande e expressiva (abre 0..1).
+function bocaFofa(ctx, x, y, w, abre, corLabio = '#c4545a') {
+  abre = clamp(abre);
+  ctx.save(); ctx.translate(x, y);
+  if (abre < 0.08) {
+    ctx.strokeStyle = tom(corLabio, -0.35); ctx.lineWidth = w * 0.13; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-w, -w * 0.12); ctx.quadraticCurveTo(0, w * 0.55, w, -w * 0.12); ctx.stroke();
+  } else {
+    const hh = w * (0.25 + abre * 0.75);
+    const forma = () => { ctx.moveTo(-w, -w * 0.15); ctx.quadraticCurveTo(0, -w * 0.05, w, -w * 0.15); ctx.quadraticCurveTo(w * 0.85, hh, 0, hh + w * 0.08); ctx.quadraticCurveTo(-w * 0.85, hh, -w, -w * 0.15); };
+    ctx.beginPath(); forma(); ctx.fillStyle = '#5a1620'; ctx.fill();
+    ctx.save(); ctx.clip();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(-w, -w * 0.3, w * 2, w * 0.36);
+    ctx.fillStyle = '#e8707a'; ctx.beginPath(); ctx.ellipse(0, hh + w * 0.05, w * 0.6, hh * 0.45, 0, 0, TAU); ctx.fill();
+    ctx.restore();
+    ctx.beginPath(); forma(); ctx.strokeStyle = tom(corLabio, -0.3); ctx.lineWidth = w * 0.09; ctx.lineJoin = 'round'; ctx.stroke();
+  }
+  ctx.restore();
+}
+function narizFofo(ctx, x, y, s, pele) {
+  ctx.fillStyle = 'rgba(160,80,60,0.28)'; ctx.beginPath(); ctx.ellipse(x + s * 0.15, y + s * 0.35, s * 0.8, s * 0.42, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = tom(pele, 0.08); ctx.beginPath(); ctx.ellipse(x, y, s * 0.75, s * 0.6, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(x - s * 0.2, y - s * 0.2, s * 0.25, s * 0.18, 0, 0, TAU); ctx.fill();
+}

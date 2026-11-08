@@ -1,9 +1,11 @@
 # Clipe "Abraão Confiou" (animação 2D)
 
-Videoclipe infantil gospel em 1920×1080, 24 fps, desenhado em código (Canvas 2D):
-cantora baseada na foto (cabelo chanel preto, óculos brancos, blusa canelada
-verde-oliva, colar com estrela, calça jeans clara larga), crianças, Abraão,
-Sara e o bebê Isaque. A letra aparece em estilo karaokê, sincronizada palavra
+Videoclipe infantil gospel em 1920×1080, 24 fps, desenhado em código (Canvas 2D)
+no estilo das animações infantis modernas: cabeça grande, olhos enormes e
+brilhantes, formas arredondadas e sombreado macio com aparência de volume.
+Personagens: a cantora (cabelo castanho ondulado com risca lateral, óculos
+pretos, pinta perto da boca, brincos de pérola, camiseta roxa e calça jeans
+clara larga), crianças, Abraão, Sara e o bebê Isaque. A letra aparece em estilo karaokê, sincronizada palavra
 por palavra.
 
 Resultado: `../abraao_confiou_clipe.mp4`

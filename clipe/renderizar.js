@@ -22,7 +22,7 @@ async function trecho(k, a, b) {
   await pag.evaluate(() => window.pronto);
   const arq = path.join(TMP, `parte_${k}.mp4`);
   const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', String(FPS), '-i', '-',
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', String(FPS), arq], { stdio: ['pipe', 'inherit', 'inherit'] });
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '22', '-pix_fmt', 'yuv420p', '-r', String(FPS), arq], { stdio: ['pipe', 'inherit', 'inherit'] });
   const t0 = Date.now();
   for (let i = a; i < b; i++) {
     const url = await pag.evaluate((t) => window.quadroJPEG(t, 0.95), i / FPS);

@@ -169,7 +169,7 @@ const CENAS = [
     raiosCeu(ctx, 1500, 380, t, 0.6, 1.6);
     const z = 1 + lt * 0.015;
     camera(ctx, z, W / 2, 500, () => {
-      abraao(ctx, { x: 960, y: 1980, s: 1.75, piscar: piscar(t, 2), boca: bocaVoz(t), cabeca: Math.sin(t * 3) * 0.04 + (t > 34.3 && t < 36 ? Math.sin((t - 34.3) * 8) * 0.06 : 0),
+      abraao(ctx, { x: 960, y: 1640, s: 1.3, piscar: piscar(t, 2), boca: bocaVoz(t), cabeca: Math.sin(t * 3) * 0.04 + (t > 34.3 && t < 36 ? Math.sin((t - 34.3) * 8) * 0.06 : 0),
         bracoD: { a: 0.3, b: -2.25 }, maoD: 'aberta', bracoE: { a: 0.12, b: 0.05 }, cajado: false, olhar: [0, -0.4] });
     });
     coracoes(ctx, t, 35.0, 8, '#ff7a8a');
@@ -189,7 +189,7 @@ const CENAS = [
     ceu(ctx, 'dia', t, 1500, 200, 80); prado(ctx, 'dia', t, 0);
     ctx.fillStyle = 'rgba(255,250,235,0.25)'; ctx.fillRect(0, 0, W, H);
     raiosCeu(ctx, 960, -100, t, 0.5);
-    camera(ctx, 1 + lt * 0.02, W / 2, 400, () => desenhaCantora(ctx, t, 960, 2050, 1.8, t < 46.4 ? 'coracao' : 'abertos'));
+    camera(ctx, 1 + lt * 0.02, W / 2, 400, () => desenhaCantora(ctx, t, 960, 1720, 1.42, t < 46.4 ? 'coracao' : 'abertos'));
     brilhos(ctx, t, 16, [200, 100, 1500, 700], 9);
   } },
   { t0: 49.85, t1: 61.55, fn: (ctx, t, lt) => festa(ctx, t, lt, { fiel: 58.8 }) },
@@ -295,7 +295,7 @@ function familia(ctx, t, lt, v) {
   const z = v === 1 ? 1.0 : 1 + lt * 0.02;
   camera(ctx, z, W / 2, 600, () => {
     if (v === 1) {
-      sara(ctx, { x: 960, y: 1900, s: 1.75, bebe: true, bebeAcordado: true, t, piscar: piscar(t, 4), olhar: [0, 0.6], cabeca: Math.sin(t * 1.5) * 0.05 });
+      sara(ctx, { x: 960, y: 1600, s: 1.3, bebe: true, bebeAcordado: true, t, piscar: piscar(t, 4), olhar: [0, 0.6], cabeca: Math.sin(t * 1.5) * 0.05 });
     } else {
       sara(ctx, { x: 820, y: 1060, s: 0.82, bebe: true, bebeAcordado: v === 2, t, piscar: piscar(t, 4), olhar: [0.3, 0.6], cabeca: 0.06 });
       abraao(ctx, { x: 1150, y: 1060, s: 0.86, piscar: piscar(t, 2), olhar: [-0.5, 0.3], cabeca: -0.06,
