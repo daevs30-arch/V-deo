@@ -49,7 +49,7 @@ export function criarPalco(canvas, largura = 1920, altura = 1080) {
   const rt = new THREE.WebGLRenderTarget(largura, altura, { type: THREE.HalfFloatType, stencilBuffer: true, depthBuffer: true });
   const composer = new EffectComposer(renderer, rt);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(largura, altura), 0.12, 0.4, 0.92);
+  const bloom = new UnrealBloomPass(new THREE.Vector2(largura / 2, altura / 2), 0.12, 0.4, 0.92); // bloom em meia resolução (mais leve)
   composer.addPass(bloom);
   const sat = new ShaderPass(SaturacaoShader); composer.addPass(sat);
   composer.addPass(new OutputPass());
