@@ -6,10 +6,11 @@ const PESSEGO = new THREE.Color('#ffb08a');
 // Pele lisa e cremosa com "subsurface" falso: um emissive bem leve em tom pêssego.
 export function matPele(cor, { vertexColors = false } = {}) {
   const c = new THREE.Color(cor);
-  return new THREE.MeshStandardMaterial({
+  return new THREE.MeshPhysicalMaterial({
     color: vertexColors ? 0xffffff : c, vertexColors,
     roughness: 0.62, metalness: 0,
-    emissive: c.clone().lerp(PESSEGO, 0.6), emissiveIntensity: 0.07,
+    sheen: 0.5, sheenColor: PESSEGO, sheenRoughness: 0.45, // brilho aveludado pêssego
+    emissive: c.clone().lerp(PESSEGO, 0.6), emissiveIntensity: 0.06,
   });
 }
 

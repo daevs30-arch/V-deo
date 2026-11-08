@@ -37,9 +37,9 @@ export function tubo(pontos, r0, r1, { seg = 48, rad = 20, achatar = 1, pontas =
 
 // ---------- proporções por idade ----------
 export const IDADES = {
-  bebe: { rx: 1.14, ry: 1.02, rz: 1.0, bochecha: 0.15, olhoR: 0.33, olhoX: 0.42, olhoY: -0.02, bocaY: -0.5, bocaW: 0.21, narizY: -0.24 },
-  crianca: { rx: 1.1, ry: 1.0, rz: 0.98, bochecha: 0.13, olhoR: 0.31, olhoX: 0.42, olhoY: 0.02, bocaY: -0.5, bocaW: 0.25, narizY: -0.22 },
-  adulto: { rx: 0.95, ry: 1.08, rz: 0.95, bochecha: 0.06, olhoR: 0.25, olhoX: 0.36, olhoY: 0.06, bocaY: -0.55, bocaW: 0.26, narizY: -0.22 },
+  bebe: { rx: 1.14, ry: 1.02, rz: 1.0, bochecha: 0.15, olhoR: 0.33, olhoX: 0.38, olhoY: -0.02, bocaY: -0.5, bocaW: 0.21, narizY: -0.24 },
+  crianca: { rx: 1.1, ry: 1.0, rz: 0.98, bochecha: 0.13, olhoR: 0.31, olhoX: 0.38, olhoY: 0.02, bocaY: -0.5, bocaW: 0.25, narizY: -0.22 },
+  adulto: { rx: 0.95, ry: 1.08, rz: 0.95, bochecha: 0.06, olhoR: 0.25, olhoX: 0.325, olhoY: 0.06, bocaY: -0.55, bocaW: 0.26, narizY: -0.22 },
 };
 
 // ---------- crânio ----------
@@ -47,22 +47,26 @@ function geoCabeca(p, pele, rubor) {
   const g = lisa(new THREE.SphereGeometry(1, 192, 144));
   const pos = g.attributes.position, n = pos.count, cores = new Float32Array(n * 3);
   const base = new THREE.Color(pele), blush = new THREE.Color(rubor), c = new THREE.Color();
-  const boch = [V(-0.56, -0.3, 0.77).normalize(), V(0.56, -0.3, 0.77).normalize()];
-  const v = new THREE.Vector3(), adulto = p.idade === 'adulto';
+  const adulto = p.idade === 'adulto';
+  // bochechas baixas e cheias (bebê); no adulto ficam mais altas e discretas
+  const by = adulto ? -0.3 : -0.46;
+  const boch = [V(-0.55, by, 0.72).normalize(), V(0.55, by, 0.72).normalize()];
+  const v = new THREE.Vector3();
+  const ss = THREE.MathUtils.smoothstep;
   for (let i = 0; i < n; i++) {
     v.fromBufferAttribute(pos, i).normalize();
     let r = 1;
-    for (const b of boch) r += p.bochecha * Math.exp(-v.distanceToSquared(b) / 0.07);
-    // bochechas cheias que "caem" um pouco (bem fofo nos pequenos)
-    r += (adulto ? 0.01 : 0.05) * Math.exp(-((v.y + 0.45) ** 2) / 0.05) * Math.max(0, v.z) * Math.min(1, Math.abs(v.x) * 2);
-    // queixo: pequeno na criança, um pouco mais longo no adulto
-    r -= (adulto ? 0.02 : 0.08) * Math.max(0, -v.y - 0.55) ** 2 * 3 * Math.max(0, v.z);
+    for (const b of boch) r += p.bochecha * 1.25 * Math.exp(-v.distanceToSquared(b) / 0.11);
+    // testa grande: crânio cresce para cima e um pouco para a frente
+    r += (adulto ? 0.04 : 0.1) * ss(v.y, -0.1, 0.9);
+    r += (adulto ? 0.02 : 0.05) * Math.exp(-((v.y - 0.45) ** 2) / 0.1) * Math.max(0, v.z);
+    // queixo pequeno: afina a parte de baixo no centro, entre as bochechas
+    r -= (adulto ? 0.03 : 0.1) * ss(-v.y, 0.6, 0.98) * Math.exp(-(v.x * v.x) / 0.12) * Math.max(0, v.z + 0.3);
+    r -= (adulto ? 0.0 : 0.05) * ss(-v.y, 0.75, 1.0);
     if (adulto) r += 0.06 * Math.exp(-((v.y + 0.85) ** 2) / 0.03) * Math.max(0, v.z);
-    // testa grande e redonda
-    r += 0.035 * THREE.MathUtils.smoothstep(v.y, -0.2, 1.0);
     pos.setXYZ(i, v.x * r * p.rx, v.y * r * p.ry, v.z * r * p.rz);
     // rubor rosado suave, sem contorno
-    let k = 0; for (const b of boch) k += Math.exp(-v.distanceToSquared(b) / 0.022);
+    let k = 0; for (const b of boch) k += Math.exp(-v.distanceToSquared(b) / 0.03);
     c.copy(base).lerp(blush, Math.min(0.35, k * 0.32));
     cores[i * 3] = c.r; cores[i * 3 + 1] = c.g; cores[i * 3 + 2] = c.b;
   }
@@ -120,7 +124,7 @@ function criarOlho(r, corOlhos, lado, mPele, menina, corCilios) {
   }
   olho.userData.set = ({ piscar = 0, semicerrar = 0, olhar = [0, 0], inclina = 0, arregala = 0 }) => {
     globo.rotation.set(-olhar[1] * 0.35, olhar[0] * 0.45, 0);
-    const aberto = -0.88 - arregala * 0.25 + semicerrar * 0.62;
+    const aberto = -0.78 - arregala * 0.3 + semicerrar * 0.62; // ~15% do olho coberto
     sup.rotation.x = THREE.MathUtils.lerp(aberto, 0.62, piscar);
     supPiv.rotation.z = -lado * inclina * 0.35; // bravo: canto interno desce
     inf.rotation.x = THREE.MathUtils.lerp(0.74 - semicerrar * 0.22, 0.42, piscar);
@@ -204,7 +208,7 @@ function criarBoca(cabeca, p, corLabio) {
 // ---------- expressões e bocas de fala ----------
 export const EXPRESSOES = {
   neutro: {},
-  feliz: { boca: { abre: 0.12, curva: 0.7 }, sobrancelha: { sobe: 0.15 } },
+  feliz: { boca: { abre: 0.5, curva: 0.85, largura: 1.05 }, sobrancelha: { sobe: 0.2 } },
   rindo: { boca: { abre: 0.85, curva: 0.9, largura: 1.15 }, olhos: { semicerrar: 0.5 }, sobrancelha: { sobe: 0.35 } },
   surpreso: { boca: { abre: 0.75, largura: 0.55, curva: 0 }, olhos: { arregala: 1 }, sobrancelha: { sobe: 1 } },
   triste: { boca: { abre: 0, curva: -1 }, olhos: { semicerrar: 0.3, olhar: [0, -0.5] }, sobrancelha: { inclina: -1.1, sobe: 0.25 } },
@@ -231,12 +235,15 @@ export function criarCabeca(params) {
   // olhos enormes, um pouco separados, saltando do rosto
   const olhos = [-1, 1].map((l) => {
     const o = criarOlho(p.olhoR, params.corOlhos || '#5a3418', l, mPele, !!params.menina, params.corCilios || '#1c110c');
-    o.position.set(l * p.olhoX, p.olhoY, naPele(l * p.olhoX, p.olhoY) - p.olhoR * 0.5);
-    o.rotation.y = l * 0.2; grupo.add(o); return o;
+    o.position.set(l * p.olhoX, p.olhoY, naPele(l * p.olhoX, p.olhoY) - p.olhoR * 0.66); // afundado no rosto
+    o.rotation.y = l * 0.16; grupo.add(o); return o;
   });
   // nariz pequeno e arredondado
   const nariz = new THREE.Mesh(new THREE.SphereGeometry(p.idade === 'adulto' ? 0.11 : 0.1, 40, 28), mPele);
   nariz.scale.set(1.25, 0.85, 0.8); nariz.position.set(0, p.narizY, naPele(0, p.narizY) - 0.01); nariz.castShadow = true; grupo.add(nariz);
+  // pescoço curto (o corpo encaixa embaixo dele)
+  const pesc = new THREE.Mesh(new THREE.CapsuleGeometry(p.idade === 'adulto' ? 0.3 : 0.34, 0.08, 12, 40), mPele);
+  pesc.position.set(0, -p.ry * 0.95, -0.12); pesc.castShadow = pesc.receiveShadow = true; grupo.add(pesc);
   // orelhas simples
   for (const l of [-1, 1]) {
     const o = new THREE.Mesh(new THREE.SphereGeometry(0.2, 40, 28), mPele);

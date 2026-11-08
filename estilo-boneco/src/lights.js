@@ -40,8 +40,9 @@ export function criarPalco(canvas, largura = 1920, altura = 1080) {
   // preenchimento azulado
   const preench = new THREE.DirectionalLight('#9fc4ff', 0.9); preench.position.set(-7, 2, 5); scene.add(preench);
   // rim light clara nas bordas
-  const rim = new THREE.DirectionalLight('#ffffff', 2.0); rim.position.set(-3, 5, -8); scene.add(rim);
-  const rim2 = new THREE.DirectionalLight('#fff4e8', 1.2); rim2.position.set(6, 3, -6); scene.add(rim2);
+  // rim light quente atrás (contorno dourado)
+  const rim = new THREE.DirectionalLight('#ffc98a', 3.0); rim.position.set(-4, 5, -8); scene.add(rim);
+  const rim2 = new THREE.DirectionalLight('#ffd6a8', 2.0); rim2.position.set(6, 3, -7); scene.add(rim2);
   const ceu = new THREE.HemisphereLight('#e6f2ff', '#f5dcc4', 0.55); scene.add(ceu);
 
   // pós: render (com stencil para a boca) -> bloom sutil -> saturação -> ACES/sRGB

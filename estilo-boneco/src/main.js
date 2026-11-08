@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { criarPalco } from './lights.js';
 import { criarCabeca, EXPRESSOES } from './face.js';
 import { criarCabelo } from './hair.js';
+import { matRoupa } from './materials.js';
 
 const P = criarPalco(document.getElementById('c'));
 const q = new URLSearchParams(location.search);
@@ -49,9 +50,14 @@ function testeClose() {
   P.scene.background = fundo('#a9dcff', '#fff0d6');
   const a = cabecaCompleta({ idade: 'crianca', menina: true, pele: '#9a603e', penteado: 'coquinhos', corCabelo: '#24150e', corOlhos: '#5a3418' });
   a.position.set(-1.45, 0, 0); a.rotation.set(0.05, 0.22, 0.1); a.userData.rosto({ expressao: 'feliz' }); P.scene.add(a);
-  const b = cabecaCompleta({ idade: 'crianca', pele: '#f3c9a6', penteado: 'espetado', corCabelo: '#c8562a', corOlhos: '#2f7fe0' });
+  const b = cabecaCompleta({ idade: 'crianca', pele: '#f3c9a6', penteado: 'lateral', corCabelo: '#c8562a', corOlhos: '#2f7fe0' });
   b.position.set(1.45, 0, 0); b.rotation.set(0.02, -0.25, -0.08); b.userData.rosto({ expressao: 'rindo' }); P.scene.add(b);
-  P.camera.position.set(0, 0.25, 9.2); P.camera.lookAt(0, 0.05, 0);
+  // ombros com camiseta (só para enquadrar o close; o corpo vem na próxima etapa)
+  for (const [h, cor] of [[a, '#f2b632'], [b, '#4aa3df']]) {
+    const t = new THREE.Mesh(new THREE.SphereGeometry(1, 96, 64), matRoupa(cor));
+    t.scale.set(1.05, 0.62, 0.7); t.position.set(0, -1.75, -0.12); t.castShadow = t.receiveShadow = true; h.add(t);
+  }
+  P.camera.position.set(0, 0.0, 9.6); P.camera.lookAt(0, -0.25, 0);
 }
 const teste = q.get('test') || 'rosto';
 if (teste === 'rosto') testeRosto();
