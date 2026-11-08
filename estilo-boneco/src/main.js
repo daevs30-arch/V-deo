@@ -4,6 +4,7 @@ import { criarPalco } from './lights.js';
 import { criarCabeca, EXPRESSOES } from './face.js';
 import { criarCabelo } from './hair.js';
 import { matRoupa } from './materials.js';
+import { createCharacter, POSES } from './character.js';
 
 const P = criarPalco(document.getElementById('c'));
 const q = new URLSearchParams(location.search);
@@ -59,8 +60,34 @@ function testeClose() {
   }
   P.camera.position.set(0, 0.0, 9.6); P.camera.lookAt(0, -0.25, 0);
 }
+// chão que recebe sombra + sombra de contato macia sob os pés
+function chao(y = 0) {
+  const sombra = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.28 }));
+  sombra.rotation.x = -Math.PI / 2; sombra.position.y = y; sombra.receiveShadow = true; P.scene.add(sombra);
+}
+function blob(x, z, r = 1.2) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const c = cv.getContext('2d'), g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(40,20,30,0.45)'); g.addColorStop(1, 'rgba(40,20,30,0)'); c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 1.3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.005, z); P.scene.add(m);
+}
+function testeCorpo() {
+  P.scene.background = fundo('#a9dcff', '#fff0d6');
+  chao();
+  const a = createCharacter({ idade: 'crianca', menina: true, pele: '#9a603e', penteado: 'coquinhos', corCabelo: '#24150e', corOlhos: '#5a3418', roupa: 'vestido', corRoupa: '#f2b632', corSapato: '#ff6f9a' });
+  a.position.set(-1.75, 0, 0); a.rotation.y = 0.18; a.userData.pose(POSES.relaxado(-1)); a.userData.expressao({ expressao: 'feliz' }); P.scene.add(a); blob(-1.75, 0.1);
+  const b = createCharacter({ idade: 'crianca', pele: '#f3c9a6', penteado: 'lateral', corCabelo: '#c8562a', corOlhos: '#2f7fe0', roupa: 'camiseta', corRoupa: '#4aa3df', corCalca: '#3a4f9a', corSapato: '#ef5b52' });
+  b.position.set(1.75, 0, 0); b.rotation.y = -0.18; b.userData.pose(POSES.relaxado(1)); b.userData.expressao({ expressao: 'rindo' }); P.scene.add(b); blob(1.75, 0.1);
+  window.alturas = [a.userData.altura(), b.userData.altura()];
+  P.luzes.chave.target.position.set(0, 2, 0); P.scene.add(P.luzes.chave.target);
+  P.camera.position.set(0, 2.9, 13.2); P.camera.lookAt(0, 2.65, 0);
+}
 const teste = q.get('test') || 'rosto';
+if (teste === 'corpo') testeCorpo();
+if (teste === 'braco') { testeCorpo(); P.camera.position.set(3.2, 2.6, 4.2); P.camera.lookAt(2.8, 2.2, 0); }
 if (teste === 'rosto') testeRosto();
 if (teste === 'close') testeClose();
 P.render();
 window.pronto = true;
+if (window.alturas) console.log('alturas', JSON.stringify(window.alturas));

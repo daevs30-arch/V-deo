@@ -107,10 +107,10 @@ function criarOlho(r, corOlhos, lado, mPele, menina, corCilios) {
   b2.scale.set(1, 1, 0.3); b2.position.set(-r * 0.26, -r * 0.28, r * 0.9);
   olho.add(b1, b2);
   // pálpebras: calotas da cor da pele (piscar, semicerrar, inclinar)
-  const sup = new THREE.Mesh(new THREE.SphereGeometry(r * 1.07, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), mPele);
-  const inf = new THREE.Mesh(new THREE.SphereGeometry(r * 1.06, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mPele);
+  const sup = new THREE.Mesh(new THREE.SphereGeometry(r * 1.018, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), mPele);
+  const inf = new THREE.Mesh(new THREE.SphereGeometry(r * 1.015, 64, 32, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), mPele);
   const supPiv = new THREE.Group(), infPiv = new THREE.Group();
-  supPiv.add(sup); infPiv.add(inf); sup.scale.set(0.98, 1.07, 0.92); inf.scale.set(0.98, 1.06, 0.92);
+  supPiv.add(sup); infPiv.add(inf); sup.scale.set(1, 1.05, 0.9); inf.scale.set(1, 1.05, 0.9); // mesma forma do globo: encosta nele
   olho.add(supPiv, infPiv);
   // cílios grossos nas meninas (presos à pálpebra de cima)
   if (menina) {
@@ -181,7 +181,8 @@ function criarBoca(cabeca, p, corLabio) {
     if (chave === ultimo) return; ultimo = chave;
     const w = p.bocaW * largura;
     const aberta = abre > 0.04;
-    for (const m of [labio, mascara, fundo, dentes, lingua]) m.visible = aberta;
+    for (const m of [mascara, fundo, dentes, lingua]) m.visible = aberta;
+    labio.visible = false; // sem contorno: só a cavidade
     vinco.visible = !aberta;
     if (!aberta) {
       const yE = 0.07 * curva * (1 - lado * 0.8), yD = 0.07 * curva * (1 + lado * 0.8);
@@ -242,8 +243,8 @@ export function criarCabeca(params) {
   const nariz = new THREE.Mesh(new THREE.SphereGeometry(p.idade === 'adulto' ? 0.11 : 0.1, 40, 28), mPele);
   nariz.scale.set(1.25, 0.85, 0.8); nariz.position.set(0, p.narizY, naPele(0, p.narizY) - 0.01); nariz.castShadow = true; grupo.add(nariz);
   // pescoço curto (o corpo encaixa embaixo dele)
-  const pesc = new THREE.Mesh(new THREE.CapsuleGeometry(p.idade === 'adulto' ? 0.3 : 0.34, 0.08, 12, 40), mPele);
-  pesc.position.set(0, -p.ry * 0.95, -0.12); pesc.castShadow = pesc.receiveShadow = true; grupo.add(pesc);
+  const pesc = new THREE.Mesh(new THREE.CapsuleGeometry(p.idade === 'adulto' ? 0.36 : 0.44, 0.0, 12, 40), mPele);
+  pesc.position.set(0, -p.ry * 0.88, -0.12); pesc.castShadow = pesc.receiveShadow = true; grupo.add(pesc);
   // orelhas simples
   for (const l of [-1, 1]) {
     const o = new THREE.Mesh(new THREE.SphereGeometry(0.2, 40, 28), mPele);

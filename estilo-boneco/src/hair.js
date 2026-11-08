@@ -14,8 +14,9 @@ export function criarCabelo(p, { penteado = 'liso', corCabelo = '#4a2a18', corGo
   // o crânio cresce na testa (forma de bebê): o cabelo acompanha esse volume extra
   const testa = (y) => 1 + (p.idade === 'adulto' ? 0.04 : 0.1) * THREE.MathUtils.smoothstep(y, -0.1, 0.9);
   const sup = (x, y, z, k = 1.06) => { const v = V(x, y, z).normalize(); const t = testa(v.y); return V(v.x * p.rx * k * t, v.y * p.ry * k * t, v.z * p.rz * k * t); };
+  // a mecha nasce por dentro do couro cabeludo (1º ponto afundado): sem "crista" na raiz
   const mecha = (pts, r0, r1, achatar = 0.5, k0 = 1.07, dk = 0.01) =>
-    g.add(new THREE.Mesh(tubo(pts.map(([x, y, z], i) => sup(x, y, z, k0 + i * dk)), r0, r1, { achatar }), mat));
+    g.add(new THREE.Mesh(tubo(pts.map(([x, y, z], i) => sup(x, y, z, i === 0 ? 0.9 : k0 + i * dk)), r0, r1, { achatar }), mat));
 
   // base rente ao couro cabeludo (para não aparecer pele entre as mechas)
   const base = (angulo = 0.47, incl = -0.5, lado = 0) => {
@@ -30,32 +31,30 @@ export function criarCabelo(p, { penteado = 'liso', corCabelo = '#4a2a18', corGo
   };
   // franja volumosa em camadas, saindo da risca
   const franja = (larg = 1) => {
-    // mechas largas e bem achatadas, muito sobrepostas: lidas como uma franja única com sulcos suaves
-    const L = [];
-    for (let i = 0; i < 9; i++) {
-      const u = (i - 4) / 4; // -1..1 da esquerda para a direita
+    // 5 mechas largas e achatadas, de tamanhos variados, que se fundem numa franja só
+    const M = [[-0.95, 0.34, 0.5], [-0.5, 0.42, 0.42], [-0.05, 0.38, 0.47], [0.42, 0.44, 0.4], [0.88, 0.32, 0.52]];
+    for (const [u, r, yFim] of M) {
       const lado = u < 0 ? -1 : 1;
-      L.push([[u * 0.12, 1.02, 0.15], [u * 0.45 + lado * 0.04, 0.95, 0.5], [u * 0.68 + lado * 0.06, 0.74, 0.72], [u * 0.8 + lado * 0.1, 0.5, 0.74]]);
+      mecha([[u * 0.1, 1.0, -0.1], [u * 0.42 + lado * 0.04, 0.96, 0.42], [u * 0.66 + lado * 0.06, 0.76, 0.7], [u * 0.78 + lado * 0.1, yFim, 0.74]].map(([x, y, z]) => [x * larg, y, z]), r * 1.2, r * 0.85, 0.24, 1.035, 0.008);
     }
-    for (const pts of L) mecha(pts.map(([x, y, z]) => [x * larg, y, z]), 0.3, 0.2, 0.28, 1.055, 0.006);
   };
 
   if (penteado === 'lateral') {
     // menino: mechas curvas de tamanhos variados, penteadas para um lado, pontas arredondadas,
     // linha do cabelo irregular (cada mecha termina numa altura diferente)
-    base(0.5, -0.4, -0.1); // levemente inclinada para o lado do redemoinho
+    base(0.43, -0.35, -0.05); // base menor que a área do cabelo: a linha do cabelo é formada pelas pontas das mechas
     const redemoinho = [0.35, 1.0, -0.35];
     for (let i = 0; i < 18; i++) {
       const u = i / 17;                                  // varre da nuca até a testa
       const ang = THREE.MathUtils.lerp(-2.6, 0.9, u);   // em volta do topo
       const fimX = Math.cos(ang) * 0.95 - 0.35, fimZ = Math.sin(ang) * 0.9 + 0.1;
-      const fimY = 0.42 + 0.14 * Math.sin(i * 2.3) + (fimZ < 0 ? 0.0 : 0.05); // linha irregular
+      const fimY = (fimZ > 0.5 ? 0.5 : 0.18) + 0.14 * Math.sin(i * 2.3); // linha irregular: mais baixa nos lados e atrás
       const meio = [THREE.MathUtils.lerp(redemoinho[0], fimX, 0.55) - 0.15, 1.02, THREE.MathUtils.lerp(redemoinho[2], fimZ, 0.55)];
       const r = 0.24 + 0.12 * ((i * 7) % 5) / 4;          // tamanhos variados
       mecha([redemoinho, meio, [fimX * 0.98, (fimY + 1.0) / 2 + 0.08, fimZ * 0.98], [fimX, fimY, fimZ]], r * 1.15, r * 0.75, 0.42, 1.045, 0.008);
     }
     // franjinha caindo para o lado (curva, tamanhos diferentes)
-    const fr = [[-0.05, 0.6, 0.3], [-0.32, 0.53, 0.26], [0.22, 0.66, 0.22], [-0.58, 0.48, 0.22]];
+    const fr = [[-0.02, 0.4, 0.3], [-0.36, 0.47, 0.25], [0.24, 0.55, 0.22]]; // 3 mechas caindo na testa
     for (const [x, y, r] of fr) mecha([[x + 0.25, 0.98, 0.35], [x + 0.08, 0.86, 0.62], [x - 0.08, y + 0.06, 0.8], [x - 0.2, y, 0.8]], r, r * 0.65, 0.42, 1.055, 0.008);
     // costeletas atrás das orelhas
     for (const l of [-1, 1]) mecha([[l * 0.8, 0.6, -0.1], [l * 0.95, 0.3, -0.05], [l * 0.97, 0.05, -0.02]], 0.2, 0.14, 0.5, 1.04, 0.005);
