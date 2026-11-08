@@ -72,19 +72,20 @@ function blob(x, z, r = 1.2) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(r * 2, r * 1.3), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.set(x, 0.005, z); P.scene.add(m);
 }
-function testeCorpo() {
+function testeCorpo(vista = 'frente') {
   P.scene.background = fundo('#a9dcff', '#fff0d6');
   chao();
-  const a = createCharacter({ idade: 'crianca', menina: true, pele: '#9a603e', penteado: 'coquinhos', corCabelo: '#24150e', corOlhos: '#5a3418', roupa: 'vestido', corRoupa: '#f2b632', corSapato: '#ff6f9a' });
-  a.position.set(-1.75, 0, 0); a.rotation.y = 0.18; a.userData.pose(POSES.relaxado(-1)); a.userData.expressao({ expressao: 'feliz' }); P.scene.add(a); blob(-1.75, 0.1);
-  const b = createCharacter({ idade: 'crianca', pele: '#f3c9a6', penteado: 'lateral', corCabelo: '#c8562a', corOlhos: '#2f7fe0', roupa: 'camiseta', corRoupa: '#4aa3df', corCalca: '#3a4f9a', corSapato: '#ef5b52' });
-  b.position.set(1.75, 0, 0); b.rotation.y = -0.18; b.userData.pose(POSES.relaxado(1)); b.userData.expressao({ expressao: 'rindo' }); P.scene.add(b); blob(1.75, 0.1);
-  window.alturas = [a.userData.altura(), b.userData.altura()];
+  const ang = vista === 'frente' ? 0 : 0.62; // ¾
+  const a = createCharacter({ idade: 'crianca', menina: true, pele: '#9a603e', penteado: 'coquinhos', corCabelo: '#24150e', corOlhos: '#5a3418', roupa: 'vestido', corRoupa: '#f2b632', corSapato: '#ff6f9a', pose: POSES.menina });
+  a.position.set(-1.85, 0, 0); a.rotation.y = ang; a.userData.expressao({ expressao: 'feliz' }); P.scene.add(a); blob(-1.85, 0.1);
+  const b = createCharacter({ idade: 'crianca', pele: '#f3c9a6', penteado: 'lateral', corCabelo: '#c8562a', corOlhos: '#2f7fe0', roupa: 'camiseta', corRoupa: '#4aa3df', corCalca: '#3a4f9a', corSapato: '#ef5b52', pose: POSES.menino });
+  b.position.set(1.85, 0, 0); b.rotation.y = ang; b.userData.expressao({ expressao: 'rindo' }); P.scene.add(b); blob(1.85, 0.1);
   P.luzes.chave.target.position.set(0, 2, 0); P.scene.add(P.luzes.chave.target);
-  P.camera.position.set(0, 2.9, 13.2); P.camera.lookAt(0, 2.65, 0);
+  P.camera.position.set(0, 3.0, 13.6); P.camera.lookAt(0, 2.95, 0);
+  window.alturas = [a, b].map((o) => { const bx = new THREE.Box3().setFromObject(o.userData.cabeca); const t = new THREE.Box3().setFromObject(o); return [(t.max.y - t.min.y).toFixed(2), ((bx.max.y - bx.min.y) / (t.max.y - t.min.y)).toFixed(3)]; });
 }
 const teste = q.get('test') || 'rosto';
-if (teste === 'corpo') testeCorpo();
+if (teste === 'corpo') testeCorpo(q.get('vista') || 'frente');
 if (teste === 'braco') { testeCorpo(); P.camera.position.set(3.2, 2.6, 4.2); P.camera.lookAt(2.8, 2.2, 0); }
 if (teste === 'rosto') testeRosto();
 if (teste === 'close') testeClose();

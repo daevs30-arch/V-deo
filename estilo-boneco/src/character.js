@@ -1,169 +1,197 @@
-// createCharacter(params): monta o personagem só com primitivas e um rig hierárquico simples:
-//   personagem -> quadril -> tronco -> pescoço -> cabeça
-//                         -> ombro -> cotovelo -> mão   (braços)
-//              -> quadril -> coxa -> joelho -> pé      (pernas)
-// Braços e pernas são UM tubo contínuo e afunilado que passa pelo cotovelo/joelho
-// (curva suave), refeito a cada pose: nenhuma junta aparente.
+// createCharacter(params): personagem de "massinha".
+// Proporção (altura total = 3 cabeças): cabeça 1 | tronco 0.9 | pernas 1.1.
+// O corpo inteiro (pescoço, tronco em ovo, ombros, braços, mãos-luva e pernas) é UMA
+// malha lisa gerada por SDF com união suave. As roupas são "cascas" do próprio corpo
+// (a mesma SDF inflada ~4%) recortadas com bordas arredondadas. A saia é um sino (Lathe).
+//
+// Rig: as articulações (ombro → cotovelo → pulso, quadril → joelho → tornozelo, pescoço →
+// cabeça) são calculadas por pose() e a malha é refeita a partir delas.
 import * as THREE from 'three';
-import { V, tubo } from './face.js';
 import { criarCabeca } from './face.js';
 import { criarCabelo } from './hair.js';
-import { criarRoupa } from './clothes.js';
-import { matPele, matSimples } from './materials.js';
+import { matPele, matRoupa, matSimples } from './materials.js';
+import { smin, smax, sdEsfera, sdElipsoide, sdCadeia, sdCapsula, sdElipsoideBase, malhaSDF } from './sdf.js';
 
-// proporções do corpo por idade (unidade = raio vertical da cabeça antes da escala)
-const CORPO = {
-  bebe: { cabeca: 0.95, largura: 1.15, alturaTronco: 1.4, coxa: 0.6, canela: 0.5, rPerna: [0.4, 0.31], braco: 0.55, antebraco: 0.48, rBraco: [0.26, 0.21], quadrilX: 0.4 },
-  crianca: { cabeca: 0.92, largura: 1.12, alturaTronco: 1.62, coxa: 0.8, canela: 0.7, rPerna: [0.4, 0.31], braco: 0.66, antebraco: 0.58, rBraco: [0.26, 0.21], quadrilX: 0.42 },
-  adulto: { cabeca: 0.78, largura: 0.92, alturaTronco: 2.7, coxa: 1.55, canela: 1.45, rPerna: [0.32, 0.22], braco: 1.15, antebraco: 1.0, rBraco: [0.2, 0.15], quadrilX: 0.36 },
-};
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const H = 2.0;                         // altura de uma "cabeça"
+const Y_QUADRIL = 1.1 * H;             // pernas: 1.1 cabeça
+const Y_PESCOCO = Y_QUADRIL + 0.9 * H; // tronco: 0.9 cabeça
+const R_PERNA = 0.385;                 // diâmetro ≈ 35% da largura da cabeça (2.2)
 
-// tubo afunilado rápido (para refazer a cada quadro), com leve "gordurinha" perto da raiz
-function geoMembro(pontos, r0, r1) {
-  const curva = new THREE.CatmullRomCurve3(pontos, false, 'centripetal');
-  const seg = 40, rad = 24, g = new THREE.TubeGeometry(curva, seg, 1, rad, false);
-  const pos = g.attributes.position, v = new THREE.Vector3();
-  for (let i = 0; i <= seg; i++) {
-    const t = i / seg, c = curva.getPointAt(t);
-    const r = THREE.MathUtils.lerp(r0, r1, t) * (1 + 0.08 * Math.sin(Math.PI * Math.min(1, t * 1.6)));
-    for (let j = 0; j <= rad; j++) { const k = i * (rad + 1) + j; v.fromBufferAttribute(pos, k).sub(c).multiplyScalar(r).add(c); pos.setXYZ(k, v.x, v.y, v.z); }
+// ---------- articulações a partir da pose ----------
+function articulacoes(P) {
+  const a = {};
+  const apoio = P.apoio || 1;                       // perna que segura o peso (+1 direita da tela, -1 esquerda)
+  const incl = 0.07 * apoio;                        // quadril sobe do lado do apoio
+  a.pelve = V(0.07 * apoio, Y_QUADRIL + 0.12, 0);
+  for (const l of [-1, 1]) {
+    const quadril = V(a.pelve.x + l * 0.45, a.pelve.y - 0.12 + l * incl * 0.45, 0);
+    const relaxada = l !== apoio;
+    const tornoz = relaxada ? V(l * 0.62, 0.52, 0.18) : V(l * 0.42 + 0.05 * apoio, 0.42, 0);
+    const joelho = quadril.clone().lerp(tornoz, 0.5).add(V(relaxada ? l * 0.06 : 0, 0, relaxada ? 0.2 : 0.05));
+    a[l < 0 ? 'pernaE' : 'pernaD'] = { quadril, joelho, tornoz, relaxada };
   }
-  g.computeVertexNormals();
-  return g;
+  // tronco (leve contra-inclinação) e pescoço
+  a.tronco = V(-0.03 * apoio, Y_QUADRIL + 0.85, 0);
+  a.pescoco = V(-0.06 * apoio, Y_PESCOCO - 0.05, 0);
+  // braços: grossos e curtos, caindo relaxados e um pouco afastados do corpo
+  for (const l of [-1, 1]) {
+    const b = (P[l < 0 ? 'bracoE' : 'bracoD']) || {};
+    const ombro = V(a.tronco.x + l * 0.86, Y_QUADRIL + 1.45, 0);
+    const abre = b.abre ?? 0.32, frente = b.frente ?? 0.08, dobra = b.dobra ?? 0.25;
+    const d1 = V(l * Math.sin(abre), -Math.cos(abre), 0).applyAxisAngle(V(1, 0, 0), -frente).normalize();
+    const cotovelo = ombro.clone().addScaledVector(d1, 0.6);
+    const eixo = V(1, 0, 0).applyAxisAngle(V(0, 0, 1), l * abre);
+    const d2 = d1.clone().applyAxisAngle(eixo, -dobra).normalize();
+    const pulso = cotovelo.clone().addScaledVector(d2, 0.52);
+    a[l < 0 ? 'bracoE' : 'bracoD'] = { ombro, cotovelo, pulso, d2, l };
+  }
+  a.cabeca = { inclina: P.cabecaInclina ?? 0.14 * apoio, gira: P.cabecaGira ?? 0 };
+  return a;
 }
 
-// mão gordinha: palma redonda, dedos curtos e grossos, polegar para a frente
-function criarMao(mPele, lado, escala) {
-  // mão gordinha tipo "luvinha": palma cheia, 4 dedos curtos e grossos encostados, polegar redondo
-  const m = new THREE.Group(); m.scale.setScalar(escala);
-  const palma = new THREE.Mesh(new THREE.SphereGeometry(0.2, 40, 28), mPele); palma.scale.set(0.78, 1.0, 1.05); palma.position.y = -0.12; m.add(palma);
-  for (let i = 0; i < 4; i++) {
-    const z = 0.105 - i * 0.07, d = new THREE.Mesh(new THREE.CapsuleGeometry(0.068, 0.04 + (i === 1 || i === 2 ? 0.025 : 0), 10, 24), mPele);
-    d.position.set(-lado * 0.02, -0.3 - (i === 1 || i === 2 ? 0.012 : 0), z); d.rotation.set(0, 0, lado * 0.12); m.add(d);
+// ---------- SDFs ----------
+function sdfCorpo(a, { bracos = true } = {}) {
+  const partes = [];
+  // tronco em forma de ovo (mais largo embaixo) + barriguinha + ombros arredondados
+  const ovo = (() => {
+    const c = a.tronco;
+    const e = sdElipsoide(c, V(0.98, 0.98, 0.8));
+    return (x, y, z) => { const s = 1 + 0.12 * Math.max(-1, Math.min(1, (c.y - y) / 0.98)); return e(c.x + (x - c.x) / s, y, c.z + (z - c.z) / s) * s; };
+  })();
+  partes.push(ovo);
+  partes.push(sdEsfera(V(a.tronco.x, a.tronco.y - 0.25, 0.28), 0.68));                       // barriguinha
+  partes.push(sdElipsoide(a.pelve, V(0.9, 0.55, 0.74)));                                       // quadril
+  for (const l of [-1, 1]) partes.push(sdEsfera(V(a.tronco.x + l * 0.68, Y_QUADRIL + 1.47, 0), 0.4)); // ombros
+  partes.push(sdCapsula(V(a.pescoco.x * 0.5, Y_PESCOCO - 0.45, -0.05), V(a.pescoco.x, Y_PESCOCO + 0.35, -0.08), 0.46, 0.43)); // pescoço curto e grosso
+  // pernas curtas e grossas
+  for (const k of ['pernaE', 'pernaD']) {
+    const p = a[k];
+    partes.push(sdCadeia([p.quadril.clone().add(V(0, 0.25, 0)), p.quadril, p.joelho, p.tornoz], [R_PERNA * 1.05, R_PERNA * 1.04, R_PERNA * 0.95, R_PERNA * 0.86], 0.2));
   }
-  const pol = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.04, 10, 24), mPele);
-  pol.position.set(-lado * 0.03, -0.1, 0.17); pol.rotation.set(0.7, 0, 0); m.add(pol);
-  m.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  // braços + mão-luva (palma arredondada + polegar), tudo na mesma malha
+  for (const k of (bracos ? ['bracoE', 'bracoD'] : [])) {
+    const b = a[k];
+    partes.push(sdCadeia([b.ombro, b.cotovelo, b.pulso], [0.28, 0.255, 0.23], 0.15));
+    const ey = b.d2.clone().negate(), ez = V(0, 0, 1).sub(b.d2.clone().multiplyScalar(b.d2.z)).normalize(), ex = ey.clone().cross(ez).normalize();
+    const palma = b.pulso.clone().addScaledVector(b.d2, 0.22);
+    partes.push(sdElipsoideBase(palma, V(0.2, 0.27, 0.25), ex, ey, ez));
+    const polegar0 = palma.clone().addScaledVector(ez, 0.16).addScaledVector(b.d2, -0.06);
+    partes.push(sdCapsula(polegar0, polegar0.clone().addScaledVector(ez, 0.08).addScaledVector(b.d2, 0.12), 0.095, 0.085));
+  }
+  return (x, y, z) => {
+    let d = partes[0](x, y, z);
+    for (let i = 1; i < partes.length; i++) {
+      const k = i <= 5 ? 0.32 : 0.16; // tronco funde bem macio; membros um pouco menos
+      d = smin(d, partes[i](x, y, z), k);
+    }
+    return d;
+  };
+}
+
+// camiseta: casca do tronco + mangas curtas bufantes; recortes com bordas arredondadas
+function sdfCamiseta(a, corpo, { cintura }) {
+  // corpo = SDF do corpo sem braços; a manga é uma cápsula curta e bufante no alto do braço
+  const mangas = ['bracoE', 'bracoD'].map((k) => {
+    const b = a[k], c = b.ombro.clone().lerp(b.cotovelo, 0.3);
+    return { bufa: sdEsfera(c, 0.42), braco: sdCapsula(b.ombro, b.ombro.clone().lerp(b.cotovelo, 0.42), 0.36, 0.34) };
+  });
+  const gola = sdEsfera(V(a.pescoco.x, Y_PESCOCO + 0.32, 0.12), 0.56);
+  return (x, y, z) => {
+    let d = corpo(x, y, z) - 0.07;                                     // casca: corpo inflado (~4%)
+    d = smax(d, smax(cintura - y, y - (Y_PESCOCO + 0.25), 0.1), 0.1);  // barra arredondada
+    for (const m of mangas) d = smin(d, smin(m.braco(x, y, z), m.bufa(x, y, z), 0.15), 0.18); // manga curta bufante
+    d = smax(d, -gola(x, y, z), 0.08);                                 // decote redondo
+    return d;
+  };
+}
+
+// short: casca do quadril e do alto das coxas, bordas arredondadas, sem vincos
+function sdfShort(a, corpo) {
+  // corpo = SDF do corpo sem braços: o short não envolve as mãos
+  return (x, y, z) => smax(corpo(x, y, z) - 0.075, smax(1.42 - y, y - (Y_QUADRIL + 0.5), 0.12), 0.1);
+}
+
+// saia em forma de sino (Lathe, opaca, dupla face, sem buracos)
+function criarSaia(a, cor) {
+  const yTopo = Y_QUADRIL + 0.62, yBase = 1.25;
+  const pts = [new THREE.Vector2(1.36, yBase - 0.02 - a.pelve.y)];
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24, y = THREE.MathUtils.lerp(yBase, yTopo, t);
+    const r = 1.32 - 0.36 * Math.pow(t, 1.6) + 0.05 * Math.sin(t * Math.PI); // sino
+    pts.push(new THREE.Vector2(r, y - a.pelve.y));
+  }
+  const g = new THREE.LatheGeometry(pts, 128); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: cor, roughness: 0.75, side: THREE.DoubleSide, flatShading: false }));
+  m.position.set(a.pelve.x, a.pelve.y, 0); m.scale.z = 0.86; m.castShadow = m.receiveShadow = true;
   return m;
 }
 
-// tênis arredondado com sola branca
-function criarPe(cor, escala) {
-  const p = new THREE.Group(); p.scale.setScalar(escala);
-  const corpo = new THREE.Mesh(new THREE.CapsuleGeometry(0.21, 0.26, 12, 32), matSimples(cor, 0.6));
-  corpo.rotation.x = Math.PI / 2; corpo.scale.set(1.05, 1, 0.85); corpo.position.set(0, -0.08, 0.12);
-  const sola = new THREE.Mesh(new THREE.CapsuleGeometry(0.23, 0.28, 12, 32), matSimples('#ffffff', 0.7));
-  sola.rotation.x = Math.PI / 2; sola.scale.set(1.08, 1, 0.32); sola.position.set(0, -0.2, 0.13);
-  const bico = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 16), matSimples('#ffffff', 0.6)); bico.scale.set(1.2, 0.7, 0.8); bico.position.set(0, -0.1, 0.42);
-  p.add(corpo, sola, bico); p.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return p;
+// tênis infantil de desenho: grande e arredondado, com sola branca e biqueira
+function criarTenis(cor) {
+  const g = new THREE.Group();
+  const corpo = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), matSimples(cor, 0.6));
+  corpo.scale.set(0.4, 0.3, 0.6); corpo.position.set(0, 0.24, 0.16);
+  const sola = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 32), matSimples('#ffffff', 0.7));
+  sola.scale.set(0.44, 0.12, 0.66); sola.position.set(0, 0.1, 0.17);
+  const bico = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), matSimples('#ffffff', 0.6));
+  bico.scale.set(0.3, 0.2, 0.22); bico.position.set(0, 0.2, 0.55);
+  const lingueta = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), matSimples(new THREE.Color(cor).lerp(new THREE.Color('#fff'), 0.35), 0.6));
+  lingueta.scale.set(0.24, 0.12, 0.22); lingueta.position.set(0, 0.46, 0.22);
+  g.add(sola, corpo, bico, lingueta);
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.geometry.computeVertexNormals(); } });
+  return g;
 }
 
 export function createCharacter(params = {}) {
-  const idade = params.idade || 'crianca';
-  const C = CORPO[idade];
-  const T = { largura: C.largura, alturaTronco: C.alturaTronco };
-  const mPele = matPele(params.pele || '#f2c09c');
   const personagem = new THREE.Group();
+  const mPele = matPele(params.pele || '#f2c09c');
+  const roupa = params.roupa || 'camiseta';
+  let partes = [];
 
-  // ---- hierarquia ----
-  const quadril = new THREE.Group(); personagem.add(quadril);
-  const tronco = new THREE.Group(); quadril.add(tronco);
-  const pescoco = new THREE.Group(); pescoco.position.y = T.alturaTronco * 1.02; tronco.add(pescoco);
-  const cabeca = new THREE.Group(); pescoco.add(cabeca);
-  const rosto = criarCabeca({ ...params, idade });
-  rosto.scale.setScalar(C.cabeca); rosto.position.y = 0.78 * C.cabeca;
-  const cabelo = criarCabelo(rosto.userData.p, params); cabelo.scale.setScalar(C.cabeca); cabelo.position.copy(rosto.position);
-  cabeca.add(rosto, cabelo);
+  // cabeça (com cabelo), sem o pescoço próprio: o pescoço faz parte da malha do corpo
+  const cabeca = new THREE.Group();
+  const rosto = criarCabeca({ ...params, idade: params.idade || 'crianca', semPescoco: true });
+  const cabelo = criarCabelo(rosto.userData.p, params);
+  cabeca.add(rosto, cabelo); cabeca.scale.setScalar(0.82); personagem.add(cabeca); // cabeça+cabelo ≈ 1 cabeça (2.0)
 
-  // roupa (tronco + saia/bermuda) e mangas/pernas da roupa
-  const roupa = criarRoupa(T, { ...params, menina: !!params.menina });
-  tronco.add(roupa.grupo);
-  roupa.grupo.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const descarta = (o) => o.traverse((m) => { if (m.isMesh) m.geometry.dispose(); });
 
-  // ---- membros contínuos ----
-  const novoMembro = (mat) => { const m = new THREE.Mesh(new THREE.BufferGeometry(), mat); m.castShadow = m.receiveShadow = true; return m; };
-  const bracos = [-1, 1].map((l) => {
-    const pele = novoMembro(mPele), manga = novoMembro(roupa.matManga), mao = criarMao(mPele, l, idade === 'adulto' ? 1.25 : 1.3);
-    tronco.add(pele, manga, mao); return { l, pele, manga, mao };
-  });
-  const pernas = [-1, 1].map((l) => {
-    const pele = novoMembro(mPele), calca = roupa.perna ? novoMembro(roupa.matCalca) : null, pe = criarPe(params.corSapato || '#ef5b52', idade === 'adulto' ? 1.4 : 1.3);
-    quadril.add(pele, pe); if (calca) quadril.add(calca); return { l, pele, calca, pe };
-  });
-
-  const X = V(1, 0, 0), Z = V(0, 0, 1), BAIXO = V(0, -1, 0);
-  const alturaQuadril = C.coxa + C.canela + 0.22;
-
-  // ---- pose ----
-  // valores em radianos; todos opcionais
   function pose(P = {}) {
-    const q = P.quadril || {}, t = P.tronco || {}, c = P.cabeca || {};
-    quadril.position.set(q.x || 0, alturaQuadril + (q.y || 0), 0);
-    quadril.rotation.set(q.frente || 0, q.gira || 0, q.inclina || 0);
-    tronco.rotation.set(t.frente || 0, t.gira || 0, t.inclina || 0);
-    tronco.scale.set(1 + (t.respira || 0) * 0.02, 1 + (t.respira || 0) * 0.015, 1 + (t.respira || 0) * 0.03);
-    cabeca.rotation.set(c.frente || 0, c.gira || 0, c.inclina || 0);
-
-    for (const b of bracos) {
-      const a = P[b.l < 0 ? 'bracoE' : 'bracoD'] || {};
-      const S = V(b.l * 0.8 * T.largura, T.alturaTronco * 0.82, 0); // ombro na borda do tronco
-      const abre = (a.abre ?? 0.12) * b.l;
-      const d1 = BAIXO.clone().applyAxisAngle(Z, abre).applyAxisAngle(X, -(a.frente || 0));
-      const E = S.clone().addScaledVector(d1, C.braco);
-      const eixo = X.clone().applyAxisAngle(Z, abre);
-      const d2 = d1.clone().applyAxisAngle(eixo, -(a.cotovelo ?? 0.2)).applyAxisAngle(d1, (a.torce || 0) * b.l);
-      const W = E.clone().addScaledVector(d2, C.antebraco);
-      const pts = [S.clone().addScaledVector(d1, -0.25), S, S.clone().lerp(E, 0.55), E, E.clone().lerp(W, 0.5), W, W.clone().addScaledVector(d2, 0.14)]; // termina dentro da mão
-      b.pele.geometry.dispose(); b.pele.geometry = geoMembro(pts, C.rBraco[0], C.rBraco[1]);
-      b.manga.geometry.dispose(); b.manga.geometry = geoMembro([S.clone().addScaledVector(d1, -0.3), S, S.clone().addScaledVector(d1, C.braco * 0.42)], C.rBraco[0] * 1.45, C.rBraco[0] * 1.3);
-      b.mao.position.copy(W);
-      b.mao.quaternion.setFromUnitVectors(BAIXO, d2);
-      if (a.mao === 'aberta') b.mao.rotateX(0.0);
+    for (const m of partes) { personagem.remove(m); descarta(m); }
+    partes = [];
+    const a = articulacoes(P);
+    const corpo = sdfCorpo(a), tronco = sdfCorpo(a, { bracos: false });
+    const res = params.res || 112;
+    const add = (o) => { o.traverse((m) => { if (m.isMesh) { m.castShadow = m.receiveShadow = true; } }); personagem.add(o); partes.push(o); return o; };
+    // corpo inteiro: uma malha lisa
+    add(new THREE.Mesh(malhaSDF(corpo, V(0, 2.2, 0), V(1.75, 2.35, 1.3), res), mPele));
+    // roupas = cascas do corpo
+    const corRoupa = params.corRoupa || '#4aa3df';
+    const cintura = roupa === 'vestido' ? Y_QUADRIL + 0.05 : Y_QUADRIL + 0.3; // no vestido a blusa continua por baixo da saia
+    add(new THREE.Mesh(malhaSDF(sdfCamiseta(a, tronco, { cintura }), V(0, 3.2, 0), V(1.55, 1.35, 1.3), res), matRoupa(corRoupa)));
+    if (roupa === 'vestido') add(criarSaia(a, corRoupa));
+    else add(new THREE.Mesh(malhaSDF(sdfShort(a, tronco), V(0, 1.95, 0), V(1.3, 0.75, 1.3), Math.round(res * 0.9)), matRoupa(params.corCalca || '#3a4f9a')));
+    // tênis
+    for (const k of ['pernaE', 'pernaD']) {
+      const p = a[k], t = criarTenis(params.corSapato || '#ef5b52');
+      t.position.set(p.tornoz.x, p.tornoz.y - 0.42, p.tornoz.z);
+      t.rotation.y = p.relaxada ? (p.tornoz.x > 0 ? 0.35 : -0.35) : 0;
+      add(t);
     }
-    for (const p of pernas) {
-      const a = P[p.l < 0 ? 'pernaE' : 'pernaD'] || {};
-      const H = V(p.l * C.quadrilX, 0, 0);
-      const d1 = BAIXO.clone().applyAxisAngle(Z, (a.abre || 0) * p.l).applyAxisAngle(X, -(a.frente || 0));
-      const K = H.clone().addScaledVector(d1, C.coxa);
-      const d2 = d1.clone().applyAxisAngle(X, a.joelho || 0);
-      const A = K.clone().addScaledVector(d2, C.canela);
-      p.pele.geometry.dispose(); p.pele.geometry = geoMembro([H.clone().addScaledVector(d1, -0.3), H, H.clone().lerp(K, 0.5), K, K.clone().lerp(A, 0.5), A, A.clone().addScaledVector(d2, 0.12)], C.rPerna[0], C.rPerna[1]); // termina dentro do sapato
-      if (p.calca) {
-        const fim = roupa.perna === 'longa' ? A.clone().addScaledVector(d2, -0.12) : H.clone().lerp(K, 0.8);
-        const pts = roupa.perna === 'longa' ? [H.clone().addScaledVector(d1, -0.3), H, H.clone().lerp(K, 0.5), K, K.clone().lerp(fim, 0.5), fim] : [H.clone().addScaledVector(d1, -0.3), H, fim];
-        p.calca.geometry.dispose(); p.calca.geometry = geoMembro(pts, C.rPerna[0] * 1.3, C.rPerna[0] * (roupa.perna === 'longa' ? 1.15 : 1.25));
-      }
-      // pé fica plano no chão mesmo com o quadril inclinado
-      p.pe.position.copy(A);
-      p.pe.quaternion.copy(quadril.quaternion).invert();
-      p.pe.rotateY((a.pontaFora || 0) * p.l);
-    }
-    // apoia o pé mais baixo no chão (contato com o chão)
-    personagem.updateMatrixWorld(true);
-    let minY = Infinity; const w = new THREE.Vector3();
-    for (const p of pernas) { p.pe.getWorldPosition(w); minY = Math.min(minY, w.y - personagem.position.y); }
-    quadril.position.y += 0.26 * (idade === 'adulto' ? 1.4 : 1.3) - minY;
+    // cabeça no topo do pescoço, inclinada
+    cabeca.position.set(a.pescoco.x, Y_PESCOCO + 0.8, 0.02);
+    cabeca.rotation.set(0.04, a.cabeca.gira, a.cabeca.inclina);
   }
-
-  personagem.userData = {
-    params, quadril, tronco, cabeca, rosto, pose,
-    altura: () => { const b = new THREE.Box3().setFromObject(personagem); return b.max.y - b.min.y; },
-    expressao: (e) => rosto.userData.rosto(e),
-  };
-  pose({});
+  personagem.userData = { params, pose, cabeca, expressao: (e) => rosto.userData.rosto(e) };
+  pose(params.pose || {});
   return personagem;
 }
 
-// poses prontas
+// poses prontas (cada criança diferente)
 export const POSES = {
-  relaxado: (lado = 1) => ({
-    quadril: { inclina: 0.07 * lado, gira: -0.08 * lado },
-    tronco: { inclina: -0.05 * lado },
-    cabeca: { inclina: 0.14 * lado, gira: 0.12 * lado },
-    [lado > 0 ? 'pernaD' : 'pernaE']: { abre: 0.04 },                                  // perna de apoio
-    [lado > 0 ? 'pernaE' : 'pernaD']: { abre: 0.12, frente: 0.18, joelho: 0.32, pontaFora: 0.35 }, // perna relaxada
-    [lado > 0 ? 'bracoD' : 'bracoE']: { abre: 0.3, frente: 0.05, cotovelo: 0.4 },        // braço solto
-    [lado > 0 ? 'bracoE' : 'bracoD']: { abre: 0.2, frente: 0.3, cotovelo: 0.85 },        // mão um pouco à frente
-  }),
+  // peso na perna direita, cabeça inclinada 8°, braço esquerdo levemente dobrado
+  menina: { apoio: 1, cabecaInclina: 0.14, cabecaGira: 0.1, bracoE: { abre: 0.3, frente: 0.25, dobra: 0.6 }, bracoD: { abre: 0.34, frente: 0.05, dobra: 0.15 } },
+  // peso na perna esquerda, cabeça inclinada -8°, braço direito levemente dobrado
+  menino: { apoio: -1, cabecaInclina: -0.14, cabecaGira: -0.12, bracoE: { abre: 0.36, frente: 0.0, dobra: 0.12 }, bracoD: { abre: 0.28, frente: 0.3, dobra: 0.7 } },
 };

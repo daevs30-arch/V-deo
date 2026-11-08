@@ -244,7 +244,8 @@ export function criarCabeca(params) {
   nariz.scale.set(1.25, 0.85, 0.8); nariz.position.set(0, p.narizY, naPele(0, p.narizY) - 0.01); nariz.castShadow = true; grupo.add(nariz);
   // pescoço curto (o corpo encaixa embaixo dele)
   const pesc = new THREE.Mesh(new THREE.CapsuleGeometry(p.idade === 'adulto' ? 0.36 : 0.44, 0.0, 12, 40), mPele);
-  pesc.position.set(0, -p.ry * 0.88, -0.12); pesc.castShadow = pesc.receiveShadow = true; grupo.add(pesc);
+  pesc.position.set(0, -p.ry * 0.88, -0.12); pesc.castShadow = pesc.receiveShadow = true;
+  if (!params.semPescoco) grupo.add(pesc); // no corpo inteiro o pescoço faz parte da malha do corpo
   // orelhas simples
   for (const l of [-1, 1]) {
     const o = new THREE.Mesh(new THREE.SphereGeometry(0.2, 40, 28), mPele);
