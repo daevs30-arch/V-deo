@@ -81,7 +81,7 @@ function testeCorpo(vista = 'frente') {
   const b = createCharacter({ idade: 'crianca', pele: '#f3c9a6', penteado: 'lateral', corCabelo: '#c8562a', corOlhos: '#2f7fe0', roupa: 'camiseta', corRoupa: '#4aa3df', corCalca: '#3a4f9a', corSapato: '#ef5b52', pose: POSES.menino });
   b.position.set(1.85, 0, 0); b.rotation.y = ang; b.userData.expressao({ expressao: 'rindo' }); P.scene.add(b); blob(1.85, 0.1);
   P.luzes.chave.target.position.set(0, 2, 0); P.scene.add(P.luzes.chave.target);
-  P.camera.position.set(0, 3.0, 13.6); P.camera.lookAt(0, 2.95, 0);
+  P.camera.position.set(0, 3.1, 14.0); P.camera.lookAt(0, 3.05, 0);
   window.alturas = [a, b].map((o) => { const bx = new THREE.Box3().setFromObject(o.userData.cabeca); const t = new THREE.Box3().setFromObject(o); return [(t.max.y - t.min.y).toFixed(2), ((bx.max.y - bx.min.y) / (t.max.y - t.min.y)).toFixed(3)]; });
 }
 const teste = q.get('test') || 'rosto';

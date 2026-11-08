@@ -37,8 +37,8 @@ function articulacoes(P) {
   // braços: grossos e curtos, caindo relaxados e um pouco afastados do corpo
   for (const l of [-1, 1]) {
     const b = (P[l < 0 ? 'bracoE' : 'bracoD']) || {};
-    const ombro = V(a.tronco.x + l * 0.86, Y_QUADRIL + 1.45, 0);
-    const abre = b.abre ?? 0.32, frente = b.frente ?? 0.08, dobra = b.dobra ?? 0.25;
+    const ombro = V(a.tronco.x + l * 0.62, Y_QUADRIL + 1.3, 0);   // ombro estreito e caído
+    const abre = b.abre ?? 0.32, frente = b.frente ?? 0.08, dobra = b.dobra ?? 0.26; // cotovelo ~15°
     const d1 = V(l * Math.sin(abre), -Math.cos(abre), 0).applyAxisAngle(V(1, 0, 0), -frente).normalize();
     const cotovelo = ombro.clone().addScaledVector(d1, 0.6);
     const eixo = V(1, 0, 0).applyAxisAngle(V(0, 0, 1), l * abre);
@@ -56,14 +56,14 @@ function sdfCorpo(a, { bracos = true } = {}) {
   // tronco em forma de ovo (mais largo embaixo) + barriguinha + ombros arredondados
   const ovo = (() => {
     const c = a.tronco;
-    const e = sdElipsoide(c, V(0.98, 0.98, 0.8));
-    return (x, y, z) => { const s = 1 + 0.12 * Math.max(-1, Math.min(1, (c.y - y) / 0.98)); return e(c.x + (x - c.x) / s, y, c.z + (z - c.z) / s) * s; };
+    const e = sdElipsoide(c, V(0.7, 0.98, 0.6)); // com a casca da roupa: ~70% da largura da cabeça
+    return (x, y, z) => { const s = 1 + 0.05 * Math.max(-1, Math.min(1, (c.y - y) / 0.98)); return e(c.x + (x - c.x) / s, y, c.z + (z - c.z) / s) * s; };
   })();
   partes.push(ovo);
-  partes.push(sdEsfera(V(a.tronco.x, a.tronco.y - 0.25, 0.28), 0.68));                       // barriguinha
-  partes.push(sdElipsoide(a.pelve, V(0.9, 0.55, 0.74)));                                       // quadril
-  for (const l of [-1, 1]) partes.push(sdEsfera(V(a.tronco.x + l * 0.68, Y_QUADRIL + 1.47, 0), 0.4)); // ombros
-  partes.push(sdCapsula(V(a.pescoco.x * 0.5, Y_PESCOCO - 0.45, -0.05), V(a.pescoco.x, Y_PESCOCO + 0.35, -0.08), 0.46, 0.43)); // pescoço curto e grosso
+  partes.push(sdEsfera(V(a.tronco.x, a.tronco.y - 0.3, 0.12), 0.5));                         // leve curva da barriga
+  partes.push(sdElipsoide(a.pelve, V(0.8, 0.55, 0.62)));                                       // quadril (encaixa as pernas)
+  for (const l of [-1, 1]) partes.push(sdEsfera(V(a.tronco.x + l * 0.48, Y_QUADRIL + 1.34, 0), 0.3)); // ombros estreitos e caídos
+  partes.push(sdCapsula(V(a.pescoco.x * 0.5, Y_PESCOCO - 0.45, -0.04), V(a.pescoco.x, Y_PESCOCO + 0.6, -0.08), 0.33, 0.31)); // pescoço curto
   // pernas curtas e grossas
   for (const k of ['pernaE', 'pernaD']) {
     const p = a[k];
@@ -72,17 +72,17 @@ function sdfCorpo(a, { bracos = true } = {}) {
   // braços + mão-luva (palma arredondada + polegar), tudo na mesma malha
   for (const k of (bracos ? ['bracoE', 'bracoD'] : [])) {
     const b = a[k];
-    partes.push(sdCadeia([b.ombro, b.cotovelo, b.pulso], [0.28, 0.255, 0.23], 0.15));
+    partes.push(sdCadeia([b.ombro, b.cotovelo, b.pulso], [0.225, 0.205, 0.185], 0.15));
     const ey = b.d2.clone().negate(), ez = V(0, 0, 1).sub(b.d2.clone().multiplyScalar(b.d2.z)).normalize(), ex = ey.clone().cross(ez).normalize();
     const palma = b.pulso.clone().addScaledVector(b.d2, 0.22);
-    partes.push(sdElipsoideBase(palma, V(0.2, 0.27, 0.25), ex, ey, ez));
-    const polegar0 = palma.clone().addScaledVector(ez, 0.16).addScaledVector(b.d2, -0.06);
-    partes.push(sdCapsula(polegar0, polegar0.clone().addScaledVector(ez, 0.08).addScaledVector(b.d2, 0.12), 0.095, 0.085));
+    partes.push(sdElipsoideBase(palma, V(0.15, 0.24, 0.22), ex, ey, ez)); // palma achatada virada para o corpo
+    const polegar0 = palma.clone().addScaledVector(ez, 0.14).addScaledVector(b.d2, -0.05);
+    partes.push(sdCapsula(polegar0, polegar0.clone().addScaledVector(ez, 0.07).addScaledVector(b.d2, 0.11), 0.08, 0.072));
   }
   return (x, y, z) => {
     let d = partes[0](x, y, z);
     for (let i = 1; i < partes.length; i++) {
-      const k = i <= 5 ? 0.32 : 0.16; // tronco funde bem macio; membros um pouco menos
+      const k = i <= 5 ? 0.32 : (i <= 7 ? 0.16 : 0.07); // tronco macio; pernas 0.16; braços quase sem "teia" com o corpo
       d = smin(d, partes[i](x, y, z), k);
     }
     return d;
@@ -94,12 +94,12 @@ function sdfCamiseta(a, corpo, { cintura }) {
   // corpo = SDF do corpo sem braços; a manga é uma cápsula curta e bufante no alto do braço
   const mangas = ['bracoE', 'bracoD'].map((k) => {
     const b = a[k], c = b.ombro.clone().lerp(b.cotovelo, 0.3);
-    return { bufa: sdEsfera(c, 0.42), braco: sdCapsula(b.ombro, b.ombro.clone().lerp(b.cotovelo, 0.42), 0.36, 0.34) };
+    return { bufa: sdEsfera(c, 0.34), braco: sdCapsula(b.ombro, b.ombro.clone().lerp(b.cotovelo, 0.42), 0.3, 0.28) };
   });
-  const gola = sdEsfera(V(a.pescoco.x, Y_PESCOCO + 0.32, 0.12), 0.56);
+  const gola = sdEsfera(V(a.pescoco.x, Y_PESCOCO + 0.22, 0.05), 0.44);
   return (x, y, z) => {
     let d = corpo(x, y, z) - 0.07;                                     // casca: corpo inflado (~4%)
-    d = smax(d, smax(cintura - y, y - (Y_PESCOCO + 0.25), 0.1), 0.1);  // barra arredondada
+    d = smax(d, smax(cintura - y, y - (Y_PESCOCO + 0.05), 0.1), 0.1);  // barra arredondada; gola abaixo do queixo
     for (const m of mangas) d = smin(d, smin(m.braco(x, y, z), m.bufa(x, y, z), 0.15), 0.18); // manga curta bufante
     d = smax(d, -gola(x, y, z), 0.08);                                 // decote redondo
     return d;
@@ -118,7 +118,7 @@ function criarSaia(a, cor) {
   const pts = [new THREE.Vector2(1.36, yBase - 0.02 - a.pelve.y)];
   for (let i = 0; i <= 24; i++) {
     const t = i / 24, y = THREE.MathUtils.lerp(yBase, yTopo, t);
-    const r = 1.32 - 0.36 * Math.pow(t, 1.6) + 0.05 * Math.sin(t * Math.PI); // sino
+    const r = 1.32 - 0.56 * Math.pow(t, 1.6) + 0.05 * Math.sin(t * Math.PI); // sino (topo ajustado à cintura)
     pts.push(new THREE.Vector2(r, y - a.pelve.y));
   }
   const g = new THREE.LatheGeometry(pts, 128); g.computeVertexNormals();
@@ -153,7 +153,7 @@ export function createCharacter(params = {}) {
   const cabeca = new THREE.Group();
   const rosto = criarCabeca({ ...params, idade: params.idade || 'crianca', semPescoco: true });
   const cabelo = criarCabelo(rosto.userData.p, params);
-  cabeca.add(rosto, cabelo); cabeca.scale.setScalar(0.82); personagem.add(cabeca); // cabeça+cabelo ≈ 1 cabeça (2.0)
+  cabeca.add(rosto, cabelo); cabeca.scale.setScalar(0.9); personagem.add(cabeca); // cabeça+cabelo ≈ 1 cabeça (2.0)
 
   const descarta = (o) => o.traverse((m) => { if (m.isMesh) m.geometry.dispose(); });
 
@@ -180,7 +180,7 @@ export function createCharacter(params = {}) {
       add(t);
     }
     // cabeça no topo do pescoço, inclinada
-    cabeca.position.set(a.pescoco.x, Y_PESCOCO + 0.8, 0.02);
+    cabeca.position.set(a.pescoco.x, Y_PESCOCO + 1.12, 0.02);
     cabeca.rotation.set(0.04, a.cabeca.gira, a.cabeca.inclina);
   }
   personagem.userData = { params, pose, cabeca, expressao: (e) => rosto.userData.rosto(e) };
@@ -191,7 +191,7 @@ export function createCharacter(params = {}) {
 // poses prontas (cada criança diferente)
 export const POSES = {
   // peso na perna direita, cabeça inclinada 8°, braço esquerdo levemente dobrado
-  menina: { apoio: 1, cabecaInclina: 0.14, cabecaGira: 0.1, bracoE: { abre: 0.3, frente: 0.25, dobra: 0.6 }, bracoD: { abre: 0.34, frente: 0.05, dobra: 0.15 } },
+  menina: { apoio: 1, cabecaInclina: 0.14, cabecaGira: 0.1, bracoE: { abre: 0.3, frente: 0.18, dobra: 0.26 }, bracoD: { abre: 0.34, frente: 0.04, dobra: 0.26 } },
   // peso na perna esquerda, cabeça inclinada -8°, braço direito levemente dobrado
-  menino: { apoio: -1, cabecaInclina: -0.14, cabecaGira: -0.12, bracoE: { abre: 0.36, frente: 0.0, dobra: 0.12 }, bracoD: { abre: 0.28, frente: 0.3, dobra: 0.7 } },
+  menino: { apoio: -1, cabecaInclina: -0.14, cabecaGira: -0.12, bracoE: { abre: 0.34, frente: 0.02, dobra: 0.26 }, bracoD: { abre: 0.3, frente: 0.2, dobra: 0.26 } },
 };
