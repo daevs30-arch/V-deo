@@ -178,6 +178,23 @@ def main():
     img.alpha_composite(luz.filter(ImageFilter.GaussianBlur(120)))
     bokeh(img)
 
+    # ---------- as duas pessoas lado a lado, com o rosto do mesmo tamanho ----------
+    # desenhadas antes da foto do grupo e das faixas, para ficarem por trás delas
+    # o rosto ocupa ~29% da altura do recorte dela (vai até a calça) e ~48% do
+    # recorte da Joyce (busto); as alturas abaixo deixam os dois rostos com ~215 px.
+    topo = 590  # as duas cabeças começam na mesma altura
+    m = recorte("mulher_recortada.png", 746, 150)
+    j = recorte("joyce_recortada.png", 445, 110, corte=600)
+    for p, cxp in ((m, 330), (j, 990)):
+        x, y = cxp - p.width // 2, topo
+        halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ImageDraw.Draw(halo).ellipse((x + 20, y - 30, x + p.width - 20, y + 520), fill=(255, 210, 120, 65))
+        img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(70)))
+        glow = Image.new("RGBA", p.size, (255, 215, 130, 0))
+        glow.putalpha(p.getchannel("A").filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.GaussianBlur(8)).point(lambda v: v * 0.6))
+        img.alpha_composite(glow, (x, y))
+        cola_com_sombra(img, p, x, y)
+
     # ---------- foto do grupo (reaproveitada da referência) ----------
     ref = Image.open(A("assets", "referencia.jpg")).convert("RGBA")
     grupo = ref.crop((0, 690, 1320, 1215))  # corta antes dos ícones do Instagram
@@ -197,22 +214,6 @@ def main():
     pinta_ouro(img, faixa_onda(gy + 8, 30, 46, 0.3))
     pinta_ouro(img, faixa_onda(gy - 22, 34, 16, 0.6), 1.1)
     pinta_ouro(img, faixa_onda(gy + 46, 26, 8, 0.1), 0.9)
-
-    # ---------- as duas pessoas lado a lado, com o rosto do mesmo tamanho ----------
-    # o rosto ocupa ~29% da altura do recorte dela (vai até a calça) e ~48% do
-    # recorte da Joyce (busto); as alturas abaixo deixam os dois rostos com ~215 px.
-    topo = 590  # as duas cabeças começam na mesma altura
-    m = recorte("mulher_recortada.png", 746, 150)
-    j = recorte("joyce_recortada.png", 445, 110, corte=600)
-    for p, cxp in ((m, 330), (j, 990)):
-        x, y = cxp - p.width // 2, topo
-        halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        ImageDraw.Draw(halo).ellipse((x + 20, y - 30, x + p.width - 20, y + 520), fill=(255, 210, 120, 65))
-        img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(70)))
-        glow = Image.new("RGBA", p.size, (255, 215, 130, 0))
-        glow.putalpha(p.getchannel("A").filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.GaussianBlur(8)).point(lambda v: v * 0.6))
-        img.alpha_composite(glow, (x, y))
-        cola_com_sombra(img, p, x, y)
 
     # ---------- faixa creme de baixo ----------
     cm = Image.new("L", (W, H), 0)
