@@ -278,21 +278,29 @@ def main():
     d.text((tx, 630), "com ", font=f_com, fill=VERDE, anchor="ls")
     d.text((tx + wcom, 634), "Joyce Meyer", font=f_jm, fill=VERDE, anchor="ls")
 
-    # coração em contorno + traço
-    hm = Image.new("L", (W, H), 0)
-    dh = ImageDraw.Draw(hm)
-    hx, hy = 1210, 600
-    dh.arc((hx - 44, hy - 36, hx, hy + 8), 150, 360, fill=255, width=4)
-    dh.arc((hx, hy - 36, hx + 44, hy + 8), 180, 30, fill=255, width=4)
-    dh.line((hx - 41, hy - 4, hx, hy + 46, hx + 41, hy - 4), fill=255, width=4, joint="curve")
-    dh.line([(x, hy + 46 + 20 * math.sin((x - hx) / 40)) for x in range(hx - 100, hx + 1, 4)], fill=255, width=3)
-    preenche_ouro(img, hm)
+    # medalhão com a foto da Joyce Meyer (no lugar do coração)
+    mcx, mcy, mr = 1222, 640, 88
+    jo = Image.open(A("assets", "joyce_recortada.png")).convert("RGBA").crop((10, 25, 470, 485))
+    jo = jo.resize((2 * mr, 2 * mr), Image.LANCZOS)
+    fundo_m = Image.new("RGBA", jo.size)
+    fundo_m.paste(gradiente_v(*jo.size, [(0, (30, 96, 58)), (1, VERDE_D)]), (0, 0))
+    fundo_m.alpha_composite(jo)
+    circ = Image.new("L", jo.size, 0)
+    ImageDraw.Draw(circ).ellipse((0, 0, 2 * mr - 1, 2 * mr - 1), fill=255)
+    fundo_m.putalpha(circ)
+    s_ = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(s_).ellipse((mcx - mr - 8, mcy - mr - 2, mcx + mr + 8, mcy + mr + 14), fill=(0, 0, 0, 110))
+    img.alpha_composite(s_.filter(ImageFilter.GaussianBlur(10)))
+    anel = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(anel).ellipse((mcx - mr - 8, mcy - mr - 8, mcx + mr + 8, mcy + mr + 8), fill=255)
+    preenche_ouro(img, anel)
+    img.alpha_composite(fundo_m, (mcx - mr, mcy - mr))
 
     # calendário + frase
-    cola_mask(img, icone_mask(ic_calendario, 74), (590, 690))
-    f_b = fonte("Montserrat.ttf", 35, 800)
-    d.text((685, 710), "A ÚLTIMA APRESENTAÇÃO", font=f_b, fill=VERDE, anchor="lm")
-    d.text((685, 753), "DE JOYCE MEYER NO BRASIL!", font=f_b, fill=VERDE, anchor="lm")
+    cola_mask(img, icone_mask(ic_calendario, 74), (590, 712))
+    f_b = fonte("Montserrat.ttf", 32, 800)
+    d.text((680, 735), "A ÚLTIMA APRESENTAÇÃO", font=f_b, fill=VERDE, anchor="lm")
+    d.text((680, 775), "DE JOYCE MEYER NO BRASIL!", font=f_b, fill=VERDE, anchor="lm")
 
     # lista de benefícios
     f_l = fonte("Montserrat.ttf", 31, 700)
