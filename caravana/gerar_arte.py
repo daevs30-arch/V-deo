@@ -21,8 +21,9 @@ OUT = A("caravana_love_life_2027.png")
 GOLD_L = (250, 228, 160)
 GOLD = (214, 172, 88)
 GOLD_D = (150, 108, 40)
-GREEN_D = (8, 48, 26)
-GREEN = (22, 92, 48)
+BG_D = (52, 8, 22)    # vinho escuro
+BG = (118, 22, 48)    # vinho
+TXT_PILULA = (70, 12, 30)
 
 
 def fonte(nome, tam, peso=None):
@@ -171,9 +172,9 @@ def cola_com_sombra(img, p, x, y):
 
 def main():
     gy = 1075  # topo da foto do grupo
-    img = gradiente_v(W, H, [(0, GREEN_D), (0.2, GREEN), (0.45, GREEN_D), (1, GREEN_D)]).convert("RGBA")
+    img = gradiente_v(W, H, [(0, BG_D), (0.2, BG), (0.5, BG_D), (1, BG_D)]).convert("RGBA")
     luz = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(luz).ellipse((500, 0, 1400, 700), fill=(70, 150, 80, 90))
+    ImageDraw.Draw(luz).ellipse((160, -100, 1160, 650), fill=(190, 60, 90, 90))
     img.alpha_composite(luz.filter(ImageFilter.GaussianBlur(120)))
     bokeh(img)
 
@@ -197,25 +198,21 @@ def main():
     pinta_ouro(img, faixa_onda(gy - 22, 34, 16, 0.6), 1.1)
     pinta_ouro(img, faixa_onda(gy + 46, 26, 8, 0.1), 0.9)
 
-    # ---------- Joyce Meyer (palestrante), à direita, abaixo do título ----------
-    j = recorte("joyce_recortada.png", 470, 150, corte=600)
-    jx = 1000 - j.width // 2
-    halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(halo).ellipse((jx + 40, 650, jx + j.width - 40, 1080), fill=(255, 210, 120, 60))
-    img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(70)))
-    cola_com_sombra(img, j, jx, gy + 30 - j.height)
-
-    # ---------- nova mulher, corpo inteiro (com a calça branca), à esquerda ----------
-    m = recorte("mulher_recortada.png", 950, 110)
-    mx, my = 40, 175
-    # brilho dourado no contorno, para destacá-la sobre a foto do grupo
-    glow = Image.new("RGBA", m.size, (255, 215, 130, 0))
-    glow.putalpha(m.getchannel("A").filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(10)).point(lambda v: v * 0.8))
-    img.alpha_composite(glow, (mx, my))
-    halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(halo).ellipse((60, 160, 560, 900), fill=(255, 210, 120, 70))
-    img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(90)))
-    cola_com_sombra(img, m, mx, my)
+    # ---------- as duas pessoas lado a lado, com o rosto do mesmo tamanho ----------
+    # o rosto ocupa ~29% da altura do recorte dela (vai até a calça) e ~48% do
+    # recorte da Joyce (busto); as alturas abaixo deixam os dois rostos com ~215 px.
+    topo = 590  # as duas cabeças começam na mesma altura
+    m = recorte("mulher_recortada.png", 746, 150)
+    j = recorte("joyce_recortada.png", 445, 110, corte=600)
+    for p, cxp in ((m, 330), (j, 990)):
+        x, y = cxp - p.width // 2, topo
+        halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ImageDraw.Draw(halo).ellipse((x + 20, y - 30, x + p.width - 20, y + 520), fill=(255, 210, 120, 65))
+        img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(70)))
+        glow = Image.new("RGBA", p.size, (255, 215, 130, 0))
+        glow.putalpha(p.getchannel("A").filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.GaussianBlur(8)).point(lambda v: v * 0.6))
+        img.alpha_composite(glow, (x, y))
+        cola_com_sombra(img, p, x, y)
 
     # ---------- faixa creme de baixo ----------
     cm = Image.new("L", (W, H), 0)
@@ -229,23 +226,23 @@ def main():
     pinta_ouro(img, faixa_onda(H - 48, 16, 7, 3.1), 0.9)
 
     # ---------- título (coluna da direita) ----------
-    cx = 960
-    texto_ouro(img, (cx - 20, 125), "Caravana", fonte("GreatVibes-Regular.ttf", 140))
-    img.alpha_composite(aviao(85, rot=-55), (1205, 50))
+    cx = W // 2
+    texto_ouro(img, (cx - 20, 110), "Caravana", fonte("GreatVibes-Regular.ttf", 130))
+    img.alpha_composite(aviao(80, rot=-55), (cx + 230, 40))
     curva = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(curva).arc((720, 85, 1220, 215), 20, 160, fill=255, width=4)
+    ImageDraw.Draw(curva).arc((cx - 250, 75, cx + 250, 195), 20, 160, fill=255, width=4)
     pinta_ouro(img, curva.filter(ImageFilter.GaussianBlur(0.6)))
 
-    texto_branco(img, (cx, 295), "LOVE LIFE", fonte("PlayfairDisplay.ttf", 112, 800))
-    f_conf = fonte("PlayfairDisplay.ttf", 76, 500)
-    f_ano = fonte("PlayfairDisplay.ttf", 84, 800)
+    texto_branco(img, (cx, 265), "LOVE LIFE", fonte("PlayfairDisplay.ttf", 120, 800))
+    f_conf = fonte("PlayfairDisplay.ttf", 80, 500)
+    f_ano = fonte("PlayfairDisplay.ttf", 88, 800)
     w_conf = f_conf.getlength("Conference ")
     w_ano = f_ano.getlength("2027")
     x0 = cx - (w_conf + w_ano) / 2
-    texto_branco(img, (x0, 415), "Conference ", f_conf, anchor="ls")
-    texto_ouro(img, (x0 + w_conf, 415), "2027", f_ano, anchor="ls")
+    texto_branco(img, (x0, 385), "Conference ", f_conf, anchor="ls")
+    texto_ouro(img, (x0 + w_conf, 385), "2027", f_ano, anchor="ls")
 
-    ly = 460
+    ly = 425
     linha = Image.new("L", (W, H), 0)
     ImageDraw.Draw(linha).line((cx - 290, ly, cx - 36, ly), fill=255, width=3)
     ImageDraw.Draw(linha).line((cx + 36, ly, cx + 290, ly), fill=255, width=3)
@@ -253,7 +250,7 @@ def main():
     img.alpha_composite(coracao(42), (cx - 21, ly - 20))
 
     # pílula "Inscrições abertas!"
-    bx0, by0, bx1, by1 = cx - 315, 495, cx + 315, 595
+    bx0, by0, bx1, by1 = cx - 315, 455, cx + 315, 550
     pm = Image.new("L", (W, H), 0)
     ImageDraw.Draw(pm).rounded_rectangle((bx0, by0, bx1, by1), 50, fill=255)
     s = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -267,7 +264,7 @@ def main():
                                           outline=(255, 250, 230), width=2)
     ImageDraw.Draw(img).text((cx, (by0 + by1) / 2 + 2), "Inscrições abertas!",
                              font=fonte("PlayfairDisplay-Italic.ttf", 60, 800),
-                             fill=(16, 56, 32), anchor="mm")
+                             fill=TXT_PILULA, anchor="mm")
 
     img.convert("RGB").save(OUT, quality=95)
     print("gerado:", OUT)
