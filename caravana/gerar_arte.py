@@ -206,14 +206,14 @@ def main():
     cola_com_sombra(img, j, jx, gy + 30 - j.height)
 
     # ---------- nova mulher, corpo inteiro (com a calça branca), à esquerda ----------
-    m = recorte("mulher_recortada.png", 1200, 120)
-    mx, my = 10, 55
+    m = recorte("mulher_recortada.png", 950, 110)
+    mx, my = 40, 175
     # brilho dourado no contorno, para destacá-la sobre a foto do grupo
     glow = Image.new("RGBA", m.size, (255, 215, 130, 0))
     glow.putalpha(m.getchannel("A").filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(10)).point(lambda v: v * 0.8))
     img.alpha_composite(glow, (mx, my))
     halo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(halo).ellipse((40, 60, 600, 900), fill=(255, 210, 120, 70))
+    ImageDraw.Draw(halo).ellipse((60, 160, 560, 900), fill=(255, 210, 120, 70))
     img.alpha_composite(halo.filter(ImageFilter.GaussianBlur(90)))
     cola_com_sombra(img, m, mx, my)
 
